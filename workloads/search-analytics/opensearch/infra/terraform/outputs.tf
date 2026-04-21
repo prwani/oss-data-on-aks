@@ -1,11 +1,11 @@
 output "resource_group_name" {
   description = "Resource group for the OpenSearch blueprint."
-  value       = var.resource_group_name
+  value       = module.aks_platform.resource_group_name
 }
 
 output "cluster_name" {
   description = "AKS cluster name for the OpenSearch blueprint."
-  value       = var.cluster_name
+  value       = module.aks_platform.cluster_name
 }
 
 output "snapshot_storage_account_name" {
@@ -20,5 +20,5 @@ output "snapshot_container_name" {
 
 output "get_credentials_command" {
   description = "Convenience command for connecting to the AKS cluster."
-  value       = "az aks get-credentials --resource-group ${var.resource_group_name} --name ${var.cluster_name}"
+  value       = "az aks get-credentials --resource-group ${module.aks_platform.resource_group_name} --name ${module.aks_platform.cluster_name}"
 }

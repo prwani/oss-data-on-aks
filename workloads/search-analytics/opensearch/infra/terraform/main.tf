@@ -40,8 +40,8 @@ resource "azurerm_storage_account" "snapshot" {
   count = var.deploy_snapshot_storage ? 1 : 0
 
   name                     = var.snapshot_storage_account_name
-  resource_group_name      = var.resource_group_name
-  location                 = var.location
+  resource_group_name      = module.aks_platform.resource_group_name
+  location                 = module.aks_platform.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
   account_kind             = "StorageV2"

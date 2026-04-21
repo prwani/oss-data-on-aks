@@ -56,5 +56,5 @@ resource snapshotContainer 'Microsoft.Storage/storageAccounts/blobServices/conta
 }
 
 output deployedClusterName string = clusterName
-output deployedSnapshotStorageAccount string = deploySnapshotStorage ? snapshotStorage.name : ''
-output deployedSnapshotContainer string = deploySnapshotStorage ? snapshotContainer.name : ''
+output deployedSnapshotStorageAccount string = deploySnapshotStorage ? snapshotStorageAccountName : ''
+output deployedSnapshotContainer string = deploySnapshotStorage ? snapshotContainerName : ''

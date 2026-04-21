@@ -1,5 +1,5 @@
 variable "aks_avm_module_version" {
-  description = "Version of the AKS AVM Terraform module to validate and pin for this blueprint."
+  description = "Version of the AKS AVM Terraform module to pin. The default is a placeholder; validate against https://registry.terraform.io/modules/Azure/avm-res-containerservice-managedcluster/azurerm and pin a released version before `terraform apply`."
   type        = string
   default     = "0.1.0"
 }
