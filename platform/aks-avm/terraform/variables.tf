@@ -29,3 +29,8 @@ variable "cluster_name" {
   type        = string
 }
 
+variable "tags" {
+  description = "Tags applied to wrapper-managed Azure resources."
+  type        = map(string)
+  default     = {}
+}

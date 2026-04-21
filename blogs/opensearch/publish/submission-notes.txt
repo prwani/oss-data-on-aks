@@ -1,0 +1,16 @@
+OpenSearch on AKS submission notes
+
+Package contents:
+- source/opensearch-on-aks.md
+- source/opensearch-on-aks-part-2.md
+- publish/metadata.yml
+- publish/social-copy.txt
+- publish/image-manifest.csv
+
+Before submission:
+1. Replace placeholder storage account names and screenshots with validated environment-specific examples.
+2. Capture one architecture diagram and at least two product screenshots:
+   - Dashboards access through the internal load balancer
+   - cluster health view after initial deployment
+3. Re-check the current AVM module version used in code samples.
+4. Confirm the exact Helm chart versions used in the final walkthrough.

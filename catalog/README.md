@@ -4,7 +4,7 @@ This catalog tracks the first wave of open-source data and analytics blueprints 
 
 | Workload | Category | Portal path | `az` CLI path | Terraform | Bicep | Blog package |
 | --- | --- | --- | --- | --- | --- | --- |
-| OpenSearch | Search and analytics | Planned | Planned | Scaffolded | Scaffolded | Seeded |
+| OpenSearch | Search and analytics | Drafted | Drafted | Expanded | Expanded | In progress |
 | Redpanda | Streaming | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
 | Apache Kafka | Streaming | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
 | Trino | Query engines | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
@@ -23,4 +23,3 @@ Each workload should grow toward the same minimum bar:
 - `az` CLI deployment walkthrough
 - workload-specific operational guidance
 - publishable blog artifacts
-

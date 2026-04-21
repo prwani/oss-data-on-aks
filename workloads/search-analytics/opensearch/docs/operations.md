@@ -1,10 +1,52 @@
 # OpenSearch operations notes
 
-Operational maturity for OpenSearch should cover:
+Operational maturity for OpenSearch should cover more than pod health.
 
-- disk headroom and shard allocation health
-- snapshots and restore drills
-- JVM and memory pressure monitoring
-- rolling upgrades and version compatibility
-- dashboard exposure and admin access controls
+## Daily and weekly signals
 
+| Area | What to watch |
+| --- | --- |
+| Cluster health | cluster status, unassigned shards, node count |
+| Storage | disk usage, watermarks, PVC pressure, Azure Disk saturation |
+| JVM | heap usage, GC pressure, CPU throttling |
+| Query path | search latency, indexing latency, rejected thread pools |
+| Access | Dashboards reachability and API exposure drift |
+
+## Snapshots and restore
+
+- do not treat persistent volumes as backups
+- register a snapshot repository backed by Azure Blob Storage
+- validate restore into a non-production cluster before you call the design production-ready
+- separate snapshot credentials and storage permissions from routine user credentials
+
+## Scaling guidance
+
+Prefer these steps over ad hoc cluster resizing:
+
+1. increase data node capacity when disk pressure or shard density is the main problem
+2. revisit heap and pod memory when JVM pressure is the main problem
+3. scale Dashboards independently from data plane components
+4. keep cluster-manager capacity steady unless cluster coordination is the bottleneck
+
+## Upgrade guidance
+
+- pin tested chart and OpenSearch versions
+- review plugin compatibility before upgrades
+- keep manager and data releases on a controlled upgrade sequence
+- snapshot before major version changes
+- validate Dashboards compatibility with the target OpenSearch version
+
+## Security follow-up items
+
+- replace default or demo certificate paths before production rollout
+- rotate the initial admin password after bootstrap
+- move toward managed identity or more controlled secret delivery for Azure integrations
+- review internal load balancer and NSG paths regularly
+
+## Recommended runbooks
+
+- restore from snapshot
+- replace a failed data node
+- recover from disk watermark pressure
+- rotate credentials used by Dashboards
+- validate cluster state after an AKS node image upgrade

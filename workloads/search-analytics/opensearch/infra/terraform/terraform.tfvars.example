@@ -1,0 +1,11 @@
+aks_avm_module_version      = "0.1.0"
+environment_name            = "dev"
+location                    = "eastus"
+resource_group_name         = "rg-opensearch-aks-dev"
+cluster_name                = "aks-opensearch-dev"
+deploy_snapshot_storage     = true
+snapshot_storage_account_name = "opssnapdev001"
+snapshot_container_name     = "opensearch-snapshots"
+tags = {
+  owner = "data-platform-team"
+}

@@ -1,0 +1,31 @@
+opensearchHosts: "https://opensearch-manager:9200"
+replicaCount: 2
+
+opensearchAccount:
+  secret: "opensearch-dashboards-auth"
+
+config:
+  opensearch_dashboards.yml: |
+    server.host: 0.0.0.0
+    opensearch.ssl.verificationMode: none
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "1Gi"
+  limits:
+    cpu: "500m"
+    memory: "1Gi"
+
+service:
+  type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: opensearch-dashboards

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opensearch-dashboards-auth
+  namespace: opensearch
+type: Opaque
+stringData:
+  username: "admin"
+  password: "ReplaceWithARealStrongPassword123!"
+  cookie: "replace-with-a-32-character-cookie-secret"

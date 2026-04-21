@@ -1,0 +1,53 @@
+clusterName: "opensearch"
+nodeGroup: "data"
+masterService: "opensearch-manager"
+
+roles:
+  - data
+  - ingest
+  - remote_cluster_client
+
+replicas: 3
+
+extraEnvs:
+  - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: opensearch-admin-credentials
+        key: password
+
+opensearchJavaOpts: "-Xms4g -Xmx4g"
+
+resources:
+  requests:
+    cpu: "2000m"
+    memory: "8Gi"
+  limits:
+    cpu: "4000m"
+    memory: "8Gi"
+
+persistence:
+  enabled: true
+  storageClass: "managed-csi-premium"
+  size: 128Gi
+
+antiAffinityTopologyKey: "kubernetes.io/hostname"
+antiAffinity: "hard"
+
+nodeSelector:
+  agentpool: osdata
+
+tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "opensearch-data"
+    effect: "NoSchedule"
+
+sysctlInit:
+  enabled: true
+
+service:
+  type: ClusterIP
+  annotations: {}
+
+maxUnavailable: 1

@@ -1,9 +1,11 @@
 # OpenSearch manifest overlays
 
-Use this folder for Kubernetes-native assets that should live next to the Helm release, such as:
+This folder holds small Kubernetes-native assets that sit beside the Helm releases.
 
-- namespaces
-- network policies
-- pod disruption budgets
-- service exposure overlays
+## Current contents
 
+- `namespace.yaml`
+- `opensearch-admin-credentials.example.yaml`
+- `opensearch-dashboards-auth.example.yaml`
+
+The secret manifests are examples only. Replace the placeholder values before applying them in a real environment.

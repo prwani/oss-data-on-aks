@@ -4,4 +4,6 @@ environment_name       = "dev"
 location               = "eastus"
 resource_group_name    = "rg-oss-data-on-aks-dev"
 cluster_name           = "aks-oss-data-on-aks-dev"
-
+tags = {
+  owner = "platform-team"
+}
