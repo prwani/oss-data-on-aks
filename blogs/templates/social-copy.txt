@@ -1,0 +1,4 @@
+<Post title>
+
+New guide: learn how to run <workload> on AKS with Azure Verified Modules as the cluster baseline, plus portal-first and CLI-first deployment paths.
+

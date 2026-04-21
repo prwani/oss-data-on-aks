@@ -1,0 +1,7 @@
+aks_avm_module_version = "0.1.0"
+workload_name          = "sample-workload"
+environment_name       = "dev"
+location               = "eastus"
+resource_group_name    = "rg-oss-data-on-aks-dev"
+cluster_name           = "aks-oss-data-on-aks-dev"
+

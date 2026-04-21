@@ -1,0 +1,5 @@
+file_name,alt_text,placement,notes
+hero-image.png,Reference architecture for OpenSearch on AKS,hero,Add final diagram before publication
+opensearch-cluster-view.png,OpenSearch cluster health view after deployment,body,Replace with validated screenshot
+dashboards-access.png,Internal access path for OpenSearch Dashboards on AKS,body,Replace with validated screenshot
+

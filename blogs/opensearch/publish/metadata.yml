@@ -1,0 +1,21 @@
+title: "Deploying OpenSearch on AKS with an AKS AVM baseline"
+target_blog: "Microsoft TechCommunity Linux and Open Source Blog"
+author: "Prafulla Wani"
+status: "draft"
+workload: "OpenSearch"
+series:
+  - "OpenSearch on AKS"
+  - "Production-minded design on AKS"
+tags:
+  - AKS
+  - Azure
+  - OpenSearch
+  - Kubernetes
+  - Linux and Open Source
+summary: "A two-part Azure-first package for deploying and operating OpenSearch on AKS with shared AKS AVM infrastructure, dual IaC paths, and operator guidance."
+canonical_repo_path: "blogs/opensearch"
+hero_image: "blogs/opensearch/assets/hero-image.png"
+review_notes:
+  - "Replace placeholders with validated screenshots and diagram assets."
+  - "Confirm the final AVM module versions used in sample code."
+

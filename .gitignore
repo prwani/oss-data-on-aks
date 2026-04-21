@@ -1,0 +1,10 @@
+.DS_Store
+.idea/
+.vscode/
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.bicepbuild.*
+*.azcli
+

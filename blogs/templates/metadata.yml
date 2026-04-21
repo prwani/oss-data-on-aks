@@ -1,0 +1,16 @@
+title: "<Post title>"
+target_blog: "Microsoft TechCommunity Linux and Open Source Blog"
+author: "<Author name>"
+status: "draft"
+workload: "<workload>"
+tags:
+  - AKS
+  - Azure
+  - Kubernetes
+summary: "<1-2 sentence abstract>"
+canonical_repo_path: "<repo path>"
+hero_image: "<assets/hero-image.png>"
+review_notes:
+  - "Confirm product naming and service availability by region."
+  - "Validate all command samples before publication."
+

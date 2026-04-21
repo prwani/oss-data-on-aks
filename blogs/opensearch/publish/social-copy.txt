@@ -1,0 +1,4 @@
+OpenSearch on AKS does not have to start as a one-off demo.
+
+This draft series packages a cleaner Azure-first approach: AKS AVM as the baseline, Terraform and Bicep side by side, plus guidance for both portal-first and CLI-first operators.
+
