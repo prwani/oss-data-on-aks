@@ -16,8 +16,24 @@ Operational maturity for OpenSearch should cover more than pod health.
 
 - do not treat persistent volumes as backups
 - register a snapshot repository backed by Azure Blob Storage
+- keep the checked-in path on AKS workload identity so OpenSearch never needs a storage account key or SAS token
 - validate restore into a non-production cluster before you call the design production-ready
-- separate snapshot credentials and storage permissions from routine user credentials
+- keep snapshot storage permissions separate from routine user credentials
+
+The checked-in manager and data Helm values install `repository-azure` and set `azure.client.default.token_credential_type: managed_identity`. When you deploy the starter snapshot storage path, the Azure wrappers also create a user-assigned managed identity, federated credentials for the manager and data service accounts, and a least-privilege `Storage Blob Data Contributor` assignment on the snapshot container.
+
+Example repository registration:
+
+```http
+PUT /_snapshot/azure-managed-identity
+{
+  "type": "azure",
+  "settings": {
+    "client": "default",
+    "container": "opensearch-snapshots"
+  }
+}
+```
 
 ## Scaling guidance
 
@@ -40,7 +56,7 @@ Prefer these steps over ad hoc cluster resizing:
 
 - replace default or demo certificate paths before production rollout
 - rotate the initial admin password after bootstrap
-- move toward managed identity or more controlled secret delivery for Azure integrations
+- keep Azure integrations on workload identity and avoid reintroducing storage account keys
 - review internal load balancer and NSG paths regularly
 
 ## Recommended runbooks

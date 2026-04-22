@@ -1,0 +1,12 @@
+Apache Kafka on AKS submission notes
+
+Package contents:
+- source/apache-kafka-on-aks.md
+- publish/metadata.yml
+- publish/social-copy.txt
+- publish/image-manifest.csv
+
+Before submission:
+1. Re-check the Bitnami Kafka chart 32.4.4 and Kafka runtime 4.0.0 against the final release notes.
+2. Validate the client topic create and describe flow against a live AKS cluster once more.
+3. Capture one screenshot of broker/controller storage layout and one screenshot of the topic validation flow if the editorial workflow requires visuals.

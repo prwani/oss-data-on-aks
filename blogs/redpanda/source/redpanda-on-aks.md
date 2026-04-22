@@ -52,6 +52,17 @@ The Redpanda workload in the repo is organized around five practical building bl
 
 That split is deliberate. It keeps AKS platform choices reusable while still letting the Redpanda workload carry its own install and operations guidance.
 
+## Checked-in version contract
+
+These are the repo-backed versions this walkthrough currently matches.
+
+| Component | Checked-in version | Evidence in repo |
+| --- | --- | --- |
+| cert-manager prerequisite | `v1.17.2` | `workloads/streaming/redpanda/kubernetes/helm/README.md` |
+| Helm chart | `redpanda/redpanda` `26.1.1` | `workloads/streaming/redpanda/kubernetes/helm/README.md` |
+| Runtime image tag | `v26.1.1` | `workloads/streaming/redpanda/kubernetes/helm/redpanda-values.yaml` |
+
+
 ## The target architecture
 
 For the starter Redpanda blueprint, I am using this pattern:

@@ -4,13 +4,25 @@ author: "Prafulla Wani"
 status: "draft"
 workload: "Apache Spark"
 tags:
-  - AKS
-  - Azure
-  - Apache Spark
-  - Kubernetes
-  - Linux and Open Source
-summary: "A production-minded starter blueprint for Apache Spark 4.1.1 on AKS with AKS AVM infrastructure, the official Spark Kubernetes Operator chart 1.6.0, a dedicated spark node pool, and concrete SparkApplication manifests."
+  - "AKS"
+  - "Azure"
+  - "Apache Spark"
+  - "Kubernetes"
+  - "Linux and Open Source"
+summary: "A production-minded starter blueprint for Apache Spark 4.1.1 on AKS with the official Spark Kubernetes Operator chart 1.6.0, operator app version 0.8.0, a dedicated spark node pool, and concrete SparkApplication manifests."
 canonical_repo_path: "blogs/apache-spark"
+source_files:
+  - "blogs/apache-spark/source/apache-spark-on-aks.md"
+validated_versions:
+  - component: "Spark Kubernetes Operator Helm chart"
+    version: "1.6.0"
+    repo_path: "workloads/distributed-processing/apache-spark/kubernetes/helm/README.md"
+  - component: "Spark Kubernetes Operator app version"
+    version: "0.8.0"
+    repo_path: "workloads/distributed-processing/apache-spark/kubernetes/helm/README.md"
+  - component: "Spark sample runtime"
+    version: "4.1.1"
+    repo_path: "workloads/distributed-processing/apache-spark/kubernetes/manifests/spark-pi.yaml"
 review_notes:
-  - "Validate the Spark operator chart 1.6.0 against the target AKS version before publication."
+  - "Validate the Spark operator chart 1.6.0 and Spark 4.1.1 sample runtime against the target AKS version before publication."
   - "Capture one SparkApplication status screenshot and one driver UI screenshot from a real deployment if the post is published externally."

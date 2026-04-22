@@ -64,10 +64,11 @@ az aks get-credentials \
   --name "$CLUSTER_NAME"
 ```
 
-## Create the namespace and secrets
+## Create the namespace, storage class, and secrets
 
 ```bash
 kubectl apply -f workloads/orchestration/apache-airflow/kubernetes/manifests/namespace.yaml
+kubectl apply -f workloads/orchestration/apache-airflow/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 
 kubectl create secret generic airflow-postgresql-auth -n "$AIRFLOW_NAMESPACE" \
   --from-literal=password="$AIRFLOW_POSTGRES_PASSWORD"
@@ -127,6 +128,7 @@ kubectl exec -n "$AIRFLOW_NAMESPACE" deploy/airflow-api-server -- \
 ```bash
 kubectl get pods -n "$AIRFLOW_NAMESPACE"
 kubectl get svc -n "$AIRFLOW_NAMESPACE"
+kubectl get storageclass managed-csi-premium
 kubectl get jobs -n "$AIRFLOW_NAMESPACE"
 kubectl logs deploy/airflow-scheduler -n "$AIRFLOW_NAMESPACE" --tail=100
 kubectl describe svc airflow-webserver -n "$AIRFLOW_NAMESPACE"
@@ -142,5 +144,6 @@ kubectl port-forward svc/airflow-webserver 8080:8080 -n "$AIRFLOW_NAMESPACE"
 
 - the Airflow UI stays internal by default
 - the blueprint assumes the Helm release name `airflow`
+- apply `workloads/orchestration/apache-airflow/kubernetes/manifests/managed-csi-premium-storageclass.yaml` before the Helm release unless your cluster already exposes an equivalent Premium CSI class and you rename the values accordingly
 - bundled PostgreSQL and Redis are acceptable only as the starter scope boundary; move them out when you need higher durability, independent patching, or cross-zone database strategies
 - if you later enable remote logging or DAG storage on Azure Storage, use workload identity or another managed identity-based path instead of shared keys

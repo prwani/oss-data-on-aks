@@ -1,0 +1,12 @@
+Apache Superset on AKS submission notes
+
+Package contents:
+- source/apache-superset-on-aks.md
+- publish/metadata.yml
+- publish/social-copy.txt
+- publish/image-manifest.csv
+
+Before submission:
+1. Re-check the Superset chart 0.15.4 and Superset runtime 5.0.0 against the final release notes.
+2. Validate the `superset-init-db` wait flow, admin-user creation, and internal-only service exposure against a live AKS cluster once more.
+3. Capture one screenshot of the Superset UI and one screenshot of the init job or worker topology if the editorial workflow requires visuals.

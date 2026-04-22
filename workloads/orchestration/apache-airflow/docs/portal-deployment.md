@@ -18,6 +18,7 @@ Before using the portal, review the checked-in target state:
 
 - architecture: `docs/architecture.md`
 - Helm values: `kubernetes/helm/airflow-values.yaml`
+- storage class manifest: `kubernetes/manifests/managed-csi-premium-storageclass.yaml`
 - namespace manifest: `kubernetes/manifests/namespace.yaml`
 - runtime bootstrap notes: `kubernetes/manifests/README.md`
 
@@ -51,7 +52,7 @@ Mirror the AVM-oriented design decisions:
 | VM size | `Standard_D4s_v5` |
 | Taint | `dedicated=airflow:NoSchedule` |
 
-## Step 4: Connect to AKS and create the namespace
+## Step 4: Connect to AKS and create the namespace and storage class
 
 ```bash
 az aks get-credentials \
@@ -59,6 +60,7 @@ az aks get-credentials \
   --name aks-apache-airflow-dev
 
 kubectl apply -f workloads/orchestration/apache-airflow/kubernetes/manifests/namespace.yaml
+kubectl apply -f workloads/orchestration/apache-airflow/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 ```
 
 ## Step 5: Create the runtime secrets
@@ -137,6 +139,7 @@ kubectl exec -n airflow deploy/airflow-api-server -- \
 ```bash
 kubectl get pods -n airflow
 kubectl get svc -n airflow
+kubectl get storageclass managed-csi-premium
 kubectl get jobs -n airflow
 kubectl describe svc airflow-webserver -n airflow
 kubectl logs deploy/airflow-scheduler -n airflow --tail=100
@@ -147,7 +150,7 @@ Check for:
 - two healthy scheduler pods
 - two healthy webserver pods and an internal load balancer IP on `airflow-webserver`
 - a running triggerer and at least three worker pods
-- `airflow-postgresql` and `airflow-redis` PVCs bound successfully
+- the `managed-csi-premium` storage class exists and the `airflow-postgresql` and `airflow-redis` PVCs bound successfully
 - a completed database migration job
 
 ## Portal-specific review points

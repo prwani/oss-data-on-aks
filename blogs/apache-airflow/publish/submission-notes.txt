@@ -1,0 +1,12 @@
+Apache Airflow on AKS submission notes
+
+Package contents:
+- source/apache-airflow-on-aks.md
+- publish/metadata.yml
+- publish/social-copy.txt
+- publish/image-manifest.csv
+
+Before submission:
+1. Re-check the pinned Airflow chart 1.21.0 and Airflow runtime 3.2.0 against the final release notes.
+2. Validate the secret-creation and admin-user commands against a live AKS cluster once more.
+3. Capture one screenshot of the Airflow web UI through the internal-only access path and one screenshot of the core Airflow pods on AKS.

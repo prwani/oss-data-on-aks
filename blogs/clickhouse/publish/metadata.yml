@@ -4,13 +4,22 @@ author: "Prafulla Wani"
 status: "draft"
 workload: "ClickHouse"
 tags:
-  - AKS
-  - Azure
-  - ClickHouse
-  - Kubernetes
-  - Linux and Open Source
+  - "AKS"
+  - "Azure"
+  - "ClickHouse"
+  - "Kubernetes"
+  - "Linux and Open Source"
 summary: "A starter Azure-first blueprint for running ClickHouse on AKS with a dedicated node pool, Keeper quorum, private-by-default service exposure, and per-replica Premium SSD storage."
 canonical_repo_path: "blogs/clickhouse"
+source_files:
+  - "blogs/clickhouse/source/clickhouse-on-aks.md"
+validated_versions:
+  - component: "Bitnami ClickHouse Helm chart"
+    version: "9.4.7"
+    repo_path: "workloads/olap-databases/clickhouse/kubernetes/helm/README.md"
+  - component: "ClickHouse runtime image tag"
+    version: "25.7.5-debian-12-r0"
+    repo_path: "workloads/olap-databases/clickhouse/kubernetes/helm/clickhouse-values.yaml"
 hero_image: "blogs/clickhouse/assets/clickhouse-on-aks-architecture.svg"
 review_notes:
   - "Confirm the final Bitnami ClickHouse chart version remains 9.4.7 and the appVersion remains 25.7.5 when the post is published."

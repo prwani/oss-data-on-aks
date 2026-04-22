@@ -1,0 +1,26 @@
+# Rename this file to match the workload after copying the template if you want
+# the same naming style used by the expanded blueprints.
+#
+# Replace these commented examples with the real chart schema. Keep the repo
+# conventions intact:
+# - internal-only service exposure by default
+# - node selectors and tolerations for the dedicated workload pool
+# - runtime-generated secret references instead of checked-in credentials
+# - explicit persistence or scratch-volume decisions
+#
+# service:
+#   type: ClusterIP
+#
+# nodeSelector:
+#   agentpool: workload
+#
+# tolerations:
+#   - key: dedicated
+#     operator: Equal
+#     value: workload
+#     effect: NoSchedule
+#
+# persistence:
+#   enabled: true
+#   storageClass: managed-csi-premium
+#   size: 128Gi

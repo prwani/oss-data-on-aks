@@ -54,8 +54,8 @@ OpenSearch combines JVM memory pressure, shard placement, persistent disk needs,
 | Data tier | StatefulSet with Premium SSD PVCs | Better fit for shard durability and latency |
 | API exposure | Keep private | Use `kubectl port-forward`, bastion, or internal routing |
 | Dashboards exposure | Internal load balancer | Easier operator access without public API exposure |
-| Snapshots | Azure Blob Storage | PVCs are not backups |
-| Authentication | Replace demo defaults quickly | Use secret-backed initial password and move to stronger cert and secret handling as the blueprint matures |
+| Snapshots | Azure Blob Storage with AKS workload identity | PVCs are not backups and the checked-in path avoids storage account keys |
+| Authentication | Replace demo defaults quickly | Use secret-backed initial passwords and workload identity for Azure integrations |
 
 ## AKS-specific guidance
 
@@ -73,6 +73,7 @@ The checked-in AKS wrappers provision `systempool`, `osmgr`, and `osdata`. Becau
 ### 2. Storage choices
 
 Use Azure Disk CSI for primary data paths and treat `managed-csi-premium` as the default starting point. This blueprint uses smaller PVCs for manager nodes and larger PVCs for data nodes because their operational roles are different.
+For snapshots, the checked-in Azure wrappers create a storage account with shared-key access disabled and expect OpenSearch to reach the snapshot container through AKS workload identity.
 
 ### 3. Service exposure
 

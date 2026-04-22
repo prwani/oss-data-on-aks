@@ -11,6 +11,7 @@ This folder holds the checked-in Helm values for the starter Superset deployment
 
 ```bash
 kubectl apply -f workloads/bi/apache-superset/kubernetes/manifests/namespace.yaml
+kubectl apply -f workloads/bi/apache-superset/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 
 kubectl create secret generic superset-postgresql-auth -n superset \
   --from-literal=password="$SUPERSET_POSTGRES_PASSWORD"
@@ -46,7 +47,7 @@ kubectl wait --for=condition=available deployment/superset -n superset --timeout
 - the web UI is internal-only by default through an Azure internal load balancer
 - the chart-managed `superset-init-db` hook job runs schema migrations and `superset init`; treat it as a rollout dependency, not background noise
 - create the first admin user after the install with `kubectl exec deploy/superset -- superset fab create-admin ...`; the chart intentionally does not store an admin password in values
-- web pods, worker pods, PostgreSQL, and Redis all target the dedicated `superset` node pool
-- PostgreSQL and Redis use durable `managed-csi-premium` PVCs; if your AKS cluster uses a different Premium CSI class, update the storage class names before installation
+- the chart's root-level `nodeSelector` and `tolerations` place the web deployment, worker deployment, and init job on the dedicated `superset` node pool; PostgreSQL and Redis repeat the same placement explicitly in their subchart values
+- PostgreSQL and Redis use durable `managed-csi-premium` PVCs; apply `workloads/bi/apache-superset/kubernetes/manifests/managed-csi-premium-storageclass.yaml` before installation or change the storage class names if your AKS cluster uses a different Premium CSI class
 - Celery beat, Flower, and websocket pods stay disabled in the starter until alerts, reports, or live queue monitoring are part of the design
 - the created `superset` service account gives you a clean anchor point for workload identity later if you add Azure Storage-backed exports or logs

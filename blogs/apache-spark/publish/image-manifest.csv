@@ -1,0 +1,3 @@
+file_name,alt_text,placement,notes
+sparkapplication-status.png,SparkApplication status and retained driver/executor resources on AKS,body,Replace with validated kubectl output or portal screenshot
+spark-driver-ui.png,Apache Spark driver UI reached through kubectl port-forward,body,Replace with validated screenshot from a running job

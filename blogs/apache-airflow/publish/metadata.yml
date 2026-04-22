@@ -4,13 +4,22 @@ author: "Prafulla Wani"
 status: "draft"
 workload: "Apache Airflow"
 tags:
-  - AKS
-  - Azure
-  - Apache Airflow
-  - Kubernetes
-  - Linux and Open Source
-summary: "A production-minded starter blueprint for Apache Airflow 3.2.0 on AKS with AKS AVM infrastructure, a dedicated Airflow node pool, internal-only UI exposure, and concrete Helm, Terraform, and Bicep assets."
+  - "AKS"
+  - "Azure"
+  - "Apache Airflow"
+  - "Kubernetes"
+  - "Linux and Open Source"
+summary: "A production-minded starter blueprint for Apache Airflow 3.2.0 on AKS with AKS AVM infrastructure, the official Airflow chart 1.21.0, a dedicated Airflow node pool, internal-only UI exposure, and concrete Helm, Terraform, and Bicep assets."
 canonical_repo_path: "blogs/apache-airflow"
+source_files:
+  - "blogs/apache-airflow/source/apache-airflow-on-aks.md"
+validated_versions:
+  - component: "Apache Airflow Helm chart"
+    version: "1.21.0"
+    repo_path: "workloads/orchestration/apache-airflow/kubernetes/helm/README.md"
+  - component: "Apache Airflow runtime"
+    version: "3.2.0"
+    repo_path: "workloads/orchestration/apache-airflow/kubernetes/helm/README.md"
 review_notes:
   - "Validate the Airflow 1.21.0 chart commands against the final release notes before publication."
   - "Capture one UI screenshot from the internal load balancer flow if the post is published externally."

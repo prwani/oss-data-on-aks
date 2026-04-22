@@ -29,6 +29,18 @@ OpenSearch cares about:
 
 On AKS, those concerns translate into concrete platform decisions.
 
+## Checked-in baseline from Part 1
+
+This follow-up assumes the same checked-in deployment contract as Part 1.
+
+| Component | Checked-in version | Evidence in repo |
+| --- | --- | --- |
+| Manager and data charts | `opensearch/opensearch` `3.6.0` | `workloads/search-analytics/opensearch/kubernetes/helm/README.md` |
+| Dashboards chart | `opensearch/opensearch-dashboards` `3.6.0` | `workloads/search-analytics/opensearch/kubernetes/helm/README.md` |
+
+The checked-in values intentionally inherit runtime images from those chart defaults, so `3.6.0` is the repo-backed version to revalidate before publication.
+
+
 ## Architecture recap: why storage and PVCs matter
 
 Before talking about node pools and operational posture, it helps to make the AKS mapping explicit.
@@ -128,13 +140,14 @@ The exact factor depends on your workload, but the important point is simple: do
 Persistent volumes improve resilience, but they are not a backup strategy.
 
 That is why the OpenSearch wrappers in the repo also include starter Azure resources for snapshot storage. The current implementation does not pretend to automate every detail of snapshot repository registration yet, but it makes the external recovery target part of the blueprint rather than an afterthought.
+The checked-in path is also intentionally keyless: the starter storage account has shared-key access disabled, AKS workload identity is enabled, and the snapshot service accounts are bound to a user-assigned managed identity through federated credentials.
 
 Before calling a deployment production-ready, validate:
 
 - snapshot creation
 - restore into a separate cluster
 - retention and storage lifecycle
-- credential handling for the snapshot path
+- managed-identity credential handling for the snapshot path
 
 ## 7. Monitor the signals that matter
 

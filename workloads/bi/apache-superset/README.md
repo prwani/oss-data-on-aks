@@ -35,6 +35,7 @@ A normal stateless app can often be summarized as “deployment + service + data
 | Init and migrations | Keep the chart hook job enabled | Makes database schema state part of the deployment contract |
 | Metadata DB | Chart-managed PostgreSQL for the starter | Keeps the blueprint runnable without an extra Azure database dependency |
 | Cache and queue | Chart-managed Redis for the starter | Makes Celery and cache behavior concrete from day one |
+| Persistent storage | `managed-csi-premium` for PostgreSQL and Redis | Gives the starter stateful tiers durable AKS-backed storage |
 | UI exposure | Internal Azure load balancer | Keeps the operator surface private by default |
 
 ## Blueprint contents
@@ -51,6 +52,7 @@ A normal stateless app can often be summarized as “deployment + service + data
 - `infra/bicep/main.bicepparam`
 - `kubernetes/helm/superset-values.yaml`
 - `kubernetes/helm/README.md`
+- `kubernetes/manifests/managed-csi-premium-storageclass.yaml`
 - `kubernetes/manifests/namespace.yaml`
 - `kubernetes/manifests/README.md`
 
@@ -62,6 +64,10 @@ The checked-in commands and secret names assume:
 - Kubernetes namespace: `superset`
 
 Keeping those names stable makes the metadata database and Redis service discovery predictable.
+
+The documented deployment flows apply both bootstrap manifests before Helm installation so the `superset` namespace exists, the `managed-csi-premium` storage class is present, and the chart-managed PostgreSQL and Redis PVCs can bind cleanly on a fresh AKS cluster.
+
+The Superset chart applies the root-level `nodeSelector` and `tolerations` to the web deployment, worker deployment, and init job. The checked-in values keep PostgreSQL and Redis on the same `superset` node pool with explicit subchart selectors and tolerations because those dependency charts do not inherit the root-level placement settings.
 
 ## Scope boundary
 

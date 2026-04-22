@@ -1,0 +1,3 @@
+file_name,alt_text,placement,notes
+airflow-web-ui.png,Apache Airflow web UI reached through an internal AKS load balancer,body,Replace with validated screenshot from a deployed cluster
+airflow-platform-shape.png,Airflow API server scheduler workers PostgreSQL and Redis resources on AKS,body,Replace with validated kubectl or portal view

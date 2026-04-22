@@ -14,6 +14,27 @@ extraEnvs:
         name: opensearch-admin-credentials
         key: password
 
+config:
+  opensearch.yml: |
+    cluster.name: opensearch
+    network.host: 0.0.0.0
+    azure.client.default.token_credential_type: managed_identity
+
+labels:
+  azure.workload.identity/use: "true"
+
+rbac:
+  create: true
+  # Inject the managed identity client ID at install time with:
+  # --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=<client-id>
+  serviceAccountName: "opensearch-manager-snapshots"
+  automountServiceAccountToken: true
+
+plugins:
+  enabled: true
+  installList:
+    - repository-azure
+
 opensearchJavaOpts: "-Xms1g -Xmx1g"
 
 resources:

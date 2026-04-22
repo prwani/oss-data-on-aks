@@ -18,6 +18,7 @@ Before using the portal, review the checked-in target state:
 
 - architecture: `docs/architecture.md`
 - Helm values: `kubernetes/helm/superset-values.yaml`
+- storage class manifest: `kubernetes/manifests/managed-csi-premium-storageclass.yaml`
 - namespace manifest: `kubernetes/manifests/namespace.yaml`
 - runtime bootstrap notes: `kubernetes/manifests/README.md`
 
@@ -52,7 +53,7 @@ Mirror the AVM-oriented design decisions:
 | Taint | `dedicated=superset:NoSchedule` |
 | Label | `workload=apache-superset` |
 
-## Step 4: Connect to AKS and create the namespace
+## Step 4: Connect to AKS and create the namespace and storage class
 
 ```bash
 az aks get-credentials \
@@ -60,6 +61,7 @@ az aks get-credentials \
   --name aks-apache-superset-dev
 
 kubectl apply -f workloads/bi/apache-superset/kubernetes/manifests/namespace.yaml
+kubectl apply -f workloads/bi/apache-superset/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 ```
 
 ## Step 5: Create the runtime secrets
@@ -126,6 +128,7 @@ kubectl exec -n "$SUPERSET_NS" deploy/superset -- \
 kubectl get pods -n "$SUPERSET_NS"
 kubectl get jobs -n "$SUPERSET_NS"
 kubectl get pvc -n "$SUPERSET_NS"
+kubectl get storageclass managed-csi-premium
 kubectl get svc -n "$SUPERSET_NS"
 kubectl logs job/superset-init-db -n "$SUPERSET_NS" --tail=100
 kubectl describe svc superset -n "$SUPERSET_NS"
@@ -142,12 +145,13 @@ Check for:
 - two healthy web pods in the `superset` deployment
 - at least two healthy worker pods in `superset-worker`
 - a completed `superset-init-db` job
-- bound PVCs for the chart-managed PostgreSQL and Redis services
+- the `managed-csi-premium` storage class exists and the chart-managed PostgreSQL and Redis PVCs are bound
 - an internal load balancer IP on the `superset` service
 
 ## Portal-specific review points
 
 - confirm the `superset` node pool has the expected VM size, label, and taint
+- confirm the web pods, worker pods, and the `superset-init-db` job pod land on the `superset` node pool; PostgreSQL and Redis should do the same
 - confirm the Superset service is internal-only
 - confirm the PostgreSQL and Redis PVCs landed on Premium managed disks or the intended storage class for your cluster
 - confirm the cluster has outbound reachability to the external data sources you plan to register in Superset

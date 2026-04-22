@@ -75,6 +75,16 @@ The Kafka workload in the repo is organized around five practical building block
 
 That split is important. It lets the cluster baseline stay reusable while the Kafka-specific stateful guidance lives with the workload.
 
+## Checked-in version contract
+
+These are the repo-backed versions this walkthrough currently matches.
+
+| Component | Checked-in version | Evidence in repo |
+| --- | --- | --- |
+| Helm chart | `bitnami/kafka` `32.4.4` | `workloads/streaming/apache-kafka/kubernetes/helm/README.md` |
+| Kafka runtime | `4.0.0` | `workloads/streaming/apache-kafka/kubernetes/helm/README.md` |
+
+
 ## Deploy the AKS baseline
 
 The repo keeps both IaC entry points visible.

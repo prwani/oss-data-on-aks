@@ -15,6 +15,17 @@ param snapshotStorageAccountName string = 'opssnapdev001'
 @description('Container name for OpenSearch snapshots.')
 param snapshotContainerName string = 'opensearch-snapshots'
 
+var snapshotServiceAccountNamespace = 'opensearch'
+var snapshotManagerServiceAccountName = 'opensearch-manager-snapshots'
+var snapshotDataServiceAccountName = 'opensearch-data-snapshots'
+var snapshotManagerServiceAccountSubject = 'system:serviceaccount:${snapshotServiceAccountNamespace}:${snapshotManagerServiceAccountName}'
+var snapshotDataServiceAccountSubject = 'system:serviceaccount:${snapshotServiceAccountNamespace}:${snapshotDataServiceAccountName}'
+var snapshotManagedIdentityName = 'id-${clusterName}-snapshots'
+var storageBlobDataContributorRoleDefinitionId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+)
+
 var primaryAgentPoolProfiles = [
   {
     name: 'systempool'
@@ -60,10 +71,14 @@ module aksPlatform '../../../../../platform/aks-avm/bicep/main.bicep' = {
     clusterName: clusterName
     location: location
     dnsPrefix: '${clusterName}-dns'
+    enableOidcIssuerProfile: true
+    enableWorkloadIdentity: true
     primaryAgentPoolProfiles: primaryAgentPoolProfiles
     agentPools: agentPools
   }
 }
+
+var clusterOidcIssuerUrl = aksPlatform.outputs.?clusterOidcIssuerUrl ?? ''
 
 resource snapshotStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = if (deploySnapshotStorage) {
   name: snapshotStorageAccountName
@@ -78,6 +93,8 @@ resource snapshotStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = if (de
   }
   properties: {
     allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+    defaultToOAuthAuthentication: true
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
   }
@@ -96,6 +113,61 @@ resource snapshotContainer 'Microsoft.Storage/storageAccounts/blobServices/conta
   }
 }
 
-output deployedClusterName string = clusterName
+resource snapshotManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (deploySnapshotStorage) {
+  name: snapshotManagedIdentityName
+  location: location
+  tags: {
+    workload: 'opensearch'
+    blueprint: 'opensearch-on-aks'
+  }
+}
+
+resource snapshotManagerFederatedCredential 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-01-31' = if (deploySnapshotStorage) {
+  parent: snapshotManagedIdentity
+  name: 'fic-${clusterName}-manager-snapshots'
+  properties: {
+    audiences: [
+      'api://AzureADTokenExchange'
+    ]
+    issuer: clusterOidcIssuerUrl
+    subject: snapshotManagerServiceAccountSubject
+  }
+}
+
+resource snapshotDataFederatedCredential 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-01-31' = if (deploySnapshotStorage) {
+  parent: snapshotManagedIdentity
+  name: 'fic-${clusterName}-data-snapshots'
+  properties: {
+    audiences: [
+      'api://AzureADTokenExchange'
+    ]
+    issuer: clusterOidcIssuerUrl
+    subject: snapshotDataServiceAccountSubject
+  }
+}
+
+resource snapshotContainerBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deploySnapshotStorage) {
+  name: guid(snapshotContainer.id, snapshotManagedIdentity!.id, storageBlobDataContributorRoleDefinitionId)
+  scope: snapshotContainer
+  properties: {
+    roleDefinitionId: storageBlobDataContributorRoleDefinitionId
+    principalId: snapshotManagedIdentity!.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+output deployedClusterName string = aksPlatform.outputs.clusterName
+output deployedClusterResourceId string = aksPlatform.outputs.clusterResourceId
+output deployedClusterOidcIssuerUrl string? = aksPlatform.outputs.?clusterOidcIssuerUrl
+output deployedClusterWorkloadIdentityEnabled bool = aksPlatform.outputs.clusterWorkloadIdentityEnabled
 output deployedSnapshotStorageAccount string = deploySnapshotStorage ? snapshotStorageAccountName : ''
+output deployedSnapshotStorageAccountId string = deploySnapshotStorage ? snapshotStorage.id : ''
 output deployedSnapshotContainer string = deploySnapshotStorage ? snapshotContainerName : ''
+output deployedSnapshotContainerId string = deploySnapshotStorage ? snapshotContainer.id : ''
+output snapshotManagedIdentityClientId string = deploySnapshotStorage ? snapshotManagedIdentity!.properties.clientId : ''
+output snapshotManagedIdentityPrincipalId string = deploySnapshotStorage ? snapshotManagedIdentity!.properties.principalId : ''
+output snapshotManagedIdentityResourceId string = deploySnapshotStorage ? snapshotManagedIdentity!.id : ''
+output snapshotManagerServiceAccountName string = snapshotManagerServiceAccountName
+output snapshotManagerServiceAccountSubject string = snapshotManagerServiceAccountSubject
+output snapshotDataServiceAccountName string = snapshotDataServiceAccountName
+output snapshotDataServiceAccountSubject string = snapshotDataServiceAccountSubject

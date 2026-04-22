@@ -61,10 +61,11 @@ az aks get-credentials \
   --name "$CLUSTER_NAME"
 ```
 
-## Create the namespace and secrets
+## Create the namespace, storage class, and secrets
 
 ```bash
 kubectl apply -f workloads/bi/apache-superset/kubernetes/manifests/namespace.yaml
+kubectl apply -f workloads/bi/apache-superset/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 
 kubectl create secret generic superset-postgresql-auth -n "$SUPERSET_NAMESPACE" \
   --from-literal=password="$SUPERSET_POSTGRES_PASSWORD"
@@ -116,6 +117,7 @@ kubectl exec -n "$SUPERSET_NAMESPACE" deploy/superset -- \
 kubectl get pods -n "$SUPERSET_NAMESPACE"
 kubectl get jobs -n "$SUPERSET_NAMESPACE"
 kubectl get pvc -n "$SUPERSET_NAMESPACE"
+kubectl get storageclass managed-csi-premium
 kubectl get svc -n "$SUPERSET_NAMESPACE"
 kubectl logs job/superset-init-db -n "$SUPERSET_NAMESPACE" --tail=100
 kubectl logs deploy/superset -n "$SUPERSET_NAMESPACE" --tail=100
@@ -132,6 +134,8 @@ kubectl port-forward svc/superset 8088:8088 -n "$SUPERSET_NAMESPACE"
 ## Implementation notes
 
 - the Superset UI stays internal by default
+- the chart's root-level `nodeSelector` and `tolerations` place the web deployment, worker deployment, and `superset-init-db` job on the dedicated `superset` node pool; PostgreSQL and Redis repeat the same placement explicitly in their subchart values
+- apply `workloads/bi/apache-superset/kubernetes/manifests/managed-csi-premium-storageclass.yaml` before the Helm release unless your cluster already exposes an equivalent Premium CSI class and you rename the values accordingly
 - the `superset-init-db` job is part of every install or upgrade and must complete before the rollout is healthy
 - chart-managed PostgreSQL and Redis are acceptable starter scope boundaries, but move them out when you need independent patching, stronger backup posture, or cross-zone database design
 - Celery beat and Flower stay disabled until you explicitly add scheduled reports or queue monitoring

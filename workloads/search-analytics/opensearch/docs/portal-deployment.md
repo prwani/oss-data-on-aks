@@ -11,6 +11,7 @@ You should end with:
 - an `opensearch` namespace
 - Helm releases for manager nodes, data nodes, and Dashboards
 - internal operator access to Dashboards and private API access to OpenSearch
+- an optional Azure Blob snapshot target wired for managed-identity access instead of storage keys
 
 ## Step 1: Review the blueprint assets
 
@@ -20,7 +21,7 @@ Before clicking through the portal, review the implementation artifacts that def
 - manager Helm values: `kubernetes/helm/manager-values.yaml`
 - data Helm values: `kubernetes/helm/data-values.yaml`
 - Dashboards Helm values: `kubernetes/helm/dashboards-values.yaml`
-- example secrets: `kubernetes/manifests/*.example.yaml`
+- example manifests: `kubernetes/manifests/*.example.yaml`
 
 ## Step 2: Create or select the resource group
 
@@ -37,9 +38,10 @@ Use the portal to mirror the AVM-oriented design choices:
 
 1. choose the target region
 2. enable managed identity
-3. enable Azure Monitor integration if your environment expects it
-4. keep the cluster API private if that matches your environment constraints
-5. create a system pool and then add user pools for `osmgr` and `osdata`
+3. enable the OIDC issuer and workload identity features for the cluster
+4. enable Azure Monitor integration if your environment expects it
+5. keep the cluster API private if that matches your environment constraints
+6. create a system pool and then add user pools for `osmgr` and `osdata`
 
 ### Suggested pool intent
 
@@ -51,7 +53,29 @@ Use the portal to mirror the AVM-oriented design choices:
 
 If you taint the dedicated pools, keep the taints aligned with the example tolerations in the Helm values.
 
-## Step 4: Connect to the cluster
+## Step 4: Prepare snapshot storage access
+
+If you want the checked-in Azure snapshot pattern, keep it keyless from the start:
+
+1. create or select a `StorageV2` account and a private blob container for snapshots
+2. disable shared-key access on that storage account
+3. create a user-assigned managed identity for OpenSearch snapshots
+4. grant that identity `Storage Blob Data Contributor` on the snapshot container
+5. add federated credentials on that identity for `system:serviceaccount:opensearch:opensearch-manager-snapshots` and `system:serviceaccount:opensearch:opensearch-data-snapshots`
+
+You can fetch the AKS OIDC issuer URL with:
+
+```bash
+az aks show \
+  --resource-group rg-opensearch-aks-dev \
+  --name aks-opensearch-dev \
+  --query oidcIssuerProfile.issuerUrl \
+  -o tsv
+```
+
+Record the managed identity client ID because the Helm commands below need it.
+
+## Step 5: Connect to the cluster
 
 Once the cluster is provisioned, use Cloud Shell or a local terminal:
 
@@ -61,21 +85,31 @@ az aks get-credentials \
   --name aks-opensearch-dev
 ```
 
-## Step 5: Create the storage class, namespace, and secrets
+## Step 6: Create the storage class, namespace, and secrets
 
-Apply the Premium storage class manifest, then the namespace, and then create real secrets from the example manifests:
+Apply the Premium storage class manifest, then the namespace, and then create real secrets:
 
 ```bash
+export SNAPSHOT_IDENTITY_CLIENT_ID=<managed-identity-client-id>
+
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/namespace.yaml
-kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/opensearch-admin-credentials.example.yaml
-kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/opensearch-dashboards-auth.example.yaml
+kubectl create secret generic opensearch-admin-credentials \
+  --namespace opensearch \
+  --from-literal=password='<strong-admin-password>' \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic opensearch-dashboards-auth \
+  --namespace opensearch \
+  --from-literal=username='admin' \
+  --from-literal=password='<strong-admin-password>' \
+  --from-literal=cookie='<32-character-cookie-secret>' \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-Replace the placeholder values before applying the secrets in a real environment.
+Create real secrets instead of applying the example YAML files unchanged.
 The namespace manifest uses the `privileged` Pod Security profile because the checked-in Helm values enable the chart's sysctl init container to raise `vm.max_map_count` before the OpenSearch JVM starts.
 
-## Step 6: Install OpenSearch and Dashboards
+## Step 7: Install OpenSearch and Dashboards
 
 ```bash
 helm repo add opensearch https://opensearch-project.github.io/helm-charts/
@@ -84,11 +118,13 @@ helm repo update
 helm upgrade --install opensearch-manager opensearch/opensearch \
   --version 3.6.0 \
   --namespace opensearch \
+  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/manager-values.yaml
 
 helm upgrade --install opensearch-data opensearch/opensearch \
   --version 3.6.0 \
   --namespace opensearch \
+  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/data-values.yaml
 
 helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
@@ -97,7 +133,10 @@ helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
   --values workloads/search-analytics/opensearch/kubernetes/helm/dashboards-values.yaml
 ```
 
-## Step 7: Validate the deployment
+The checked-in manager and data values install `repository-azure`, enable managed identity token auth, and create workload-identity service accounts when you pass the managed identity client ID with `--set-string`.
+Once the pods are ready, use the repository registration example in `docs/operations.md` to create the `azure-managed-identity` snapshot repository.
+
+## Step 8: Validate the deployment
 
 ```bash
 kubectl get pods -n opensearch
@@ -111,10 +150,11 @@ Check for:
 - data pods bound to persistent volumes
 - Dashboards service receiving an internal IP
 - no unintended public endpoint for the OpenSearch API
+- the managed identity client ID available and the Helm releases rendered with the `--set-string` workload identity annotation before repository registration
 
 ## Portal-specific review points
 
 - confirm the `osmgr` and `osdata` pools have the expected VM size and disk profile
 - confirm the AKS region supports the storage and zoning decisions you chose
 - confirm the Dashboards load balancer is internal-only
-- confirm the snapshot storage account plan before production rollout
+- confirm shared-key access stays disabled on the snapshot storage account and that the managed identity is scoped to the snapshot container

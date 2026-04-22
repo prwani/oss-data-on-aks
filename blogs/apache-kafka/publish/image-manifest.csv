@@ -1,0 +1,3 @@
+file_name,alt_text,placement,notes
+kafka-broker-pvc.png,Apache Kafka broker and controller PVC layout on AKS,body,Replace with validated kubectl or portal screenshot
+kafka-topic-validation.png,Topic create and describe validation against the internal Kafka bootstrap service,body,Replace with validated terminal capture

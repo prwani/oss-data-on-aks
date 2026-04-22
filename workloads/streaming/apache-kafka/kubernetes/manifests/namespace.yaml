@@ -5,3 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: kafka
     app.kubernetes.io/part-of: apache-kafka-on-aks
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: baseline

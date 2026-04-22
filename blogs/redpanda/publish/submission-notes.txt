@@ -1,0 +1,12 @@
+Redpanda on AKS submission notes
+
+Package contents:
+- source/redpanda-on-aks.md
+- publish/metadata.yml
+- publish/social-copy.txt
+- publish/image-manifest.csv
+
+Before submission:
+1. Re-check the Redpanda chart 26.1.1, image tag v26.1.1, and cert-manager prerequisite v1.17.2 against the final release notes.
+2. Validate the TLS, listener exposure, and PVC-backed broker checks against a live AKS cluster once more.
+3. Capture one screenshot of broker placement and one screenshot of the listener or TLS validation flow if the editorial workflow requires visuals.

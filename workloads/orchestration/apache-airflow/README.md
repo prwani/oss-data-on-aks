@@ -53,6 +53,7 @@ A normal stateless app can often be summarized as “deployment + ingress + data
 - `infra/bicep/main.bicepparam`
 - `kubernetes/helm/airflow-values.yaml`
 - `kubernetes/helm/README.md`
+- `kubernetes/manifests/managed-csi-premium-storageclass.yaml`
 - `kubernetes/manifests/namespace.yaml`
 - `kubernetes/manifests/README.md`
 
@@ -64,6 +65,8 @@ The checked-in commands and connection-secret examples assume:
 - Kubernetes namespace: `airflow`
 
 Keeping those names stable makes the bundled PostgreSQL and Redis service discovery predictable.
+
+The documented deployment flows apply both bootstrap manifests before Helm installation so the `airflow` namespace exists and the bundled PostgreSQL and Redis PVCs can bind against `managed-csi-premium` on a fresh AKS cluster.
 
 ## Scope boundary
 

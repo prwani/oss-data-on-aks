@@ -22,6 +22,8 @@ module "aks_baseline" {
 
   dns_prefix             = local.dns_prefix
   managed_identities     = var.managed_identities
+  oidc_issuer_profile    = var.enable_oidc_issuer ? { enabled = true } : null
+  security_profile       = var.enable_workload_identity ? { workload_identity = { enabled = true } } : null
   default_agent_pool     = var.default_agent_pool
   agent_pools            = var.agent_pools
   disable_local_accounts = var.disable_local_accounts

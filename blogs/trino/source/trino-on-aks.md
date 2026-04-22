@@ -52,6 +52,16 @@ The Trino workload in the repo is organized around five practical building block
 
 That split is intentional. It keeps the AKS platform baseline reusable while still letting the Trino workload own its chart values, query-engine guidance, and validation commands.
 
+## Checked-in version contract
+
+These are the repo-backed versions this walkthrough currently matches.
+
+| Component | Checked-in version | Evidence in repo |
+| --- | --- | --- |
+| Helm chart | `trino/trino` `1.42.1` | `workloads/query-engines/trino/kubernetes/helm/README.md` |
+| Runtime image tag | `479` | `workloads/query-engines/trino/kubernetes/helm/trino-values.yaml` |
+
+
 ## The target architecture
 
 ![Trino on AKS architecture](../assets/trino-on-aks-architecture.svg)

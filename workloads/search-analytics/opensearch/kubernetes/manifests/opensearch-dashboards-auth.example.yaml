@@ -1,3 +1,6 @@
+# WARNING: Example manifest only. Do not apply this file unchanged.
+# WARNING: Replace every placeholder before use, especially the password and cookie secret.
+# WARNING: Never commit real credentials to this repository.
 apiVersion: v1
 kind: Secret
 metadata:

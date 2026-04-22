@@ -7,13 +7,25 @@ series:
   - "Redpanda on AKS"
   - "Stateful streaming on AKS"
 tags:
-  - AKS
-  - Azure
-  - Redpanda
-  - Kubernetes
-  - Streaming
+  - "AKS"
+  - "Azure"
+  - "Redpanda"
+  - "Kubernetes"
+  - "Streaming"
 summary: "A starter blueprint for running Redpanda 26.1.1 on AKS with an AVM cluster baseline, a dedicated rpbroker node pool, Premium SSD-backed PVCs, cert-manager-backed TLS, and internal-only listeners by default."
 canonical_repo_path: "blogs/redpanda"
+source_files:
+  - "blogs/redpanda/source/redpanda-on-aks.md"
+validated_versions:
+  - component: "cert-manager prerequisite"
+    version: "v1.17.2"
+    repo_path: "workloads/streaming/redpanda/kubernetes/helm/README.md"
+  - component: "Redpanda Helm chart"
+    version: "26.1.1"
+    repo_path: "workloads/streaming/redpanda/kubernetes/helm/README.md"
+  - component: "Redpanda runtime image tag"
+    version: "v26.1.1"
+    repo_path: "workloads/streaming/redpanda/kubernetes/helm/redpanda-values.yaml"
 review_notes:
   - "Validate the final chart version and cert-manager version during publication."
   - "Confirm the listener exposure wording still matches the checked-in Helm values."

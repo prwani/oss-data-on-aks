@@ -4,13 +4,18 @@ author: "<Author name>"
 status: "draft"
 workload: "<workload>"
 tags:
-  - AKS
-  - Azure
-  - Kubernetes
+  - "AKS"
+  - "Azure"
+  - "Kubernetes"
 summary: "<1-2 sentence abstract>"
-canonical_repo_path: "<repo path>"
-hero_image: "<assets/hero-image.png>"
+canonical_repo_path: "blogs/<workload>"
+source_files:
+  - "blogs/<workload>/source/<post>.md"
+validated_versions:
+  - component: "<Helm chart or runtime>"
+    version: "<validated version>"
+    repo_path: "<repo-relative path that proves the version>"
+hero_image: "blogs/<workload>/assets/hero-image.png"
 review_notes:
   - "Confirm product naming and service availability by region."
-  - "Validate all command samples before publication."
-
+  - "Validate the chart/app versions and command samples before publication."

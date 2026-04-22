@@ -1,0 +1,16 @@
+workload_name                = "replace-me"
+workload_namespace           = "replace-me"
+environment_name             = "dev"
+location                     = "eastus"
+resource_group_name          = "rg-replace-me-aks-dev"
+cluster_name                 = "aks-replace-me-dev"
+system_node_vm_size          = "Standard_D2s_v5"
+system_node_count            = 1
+workload_node_pool_name      = "workload"
+workload_node_vm_size        = "Standard_D4s_v5"
+workload_node_count          = 3
+workload_node_os_disk_size_gb = 128
+
+tags = {
+  owner = "data-platform-team"
+}

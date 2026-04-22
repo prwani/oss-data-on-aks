@@ -53,6 +53,16 @@ The ClickHouse workload in the repo is organized around five practical building 
 
 That split keeps the platform baseline reusable while still letting the database blueprint own the parts that make ClickHouse operationally distinct.
 
+## Checked-in version contract
+
+These are the repo-backed versions this walkthrough currently matches.
+
+| Component | Checked-in version | Evidence in repo |
+| --- | --- | --- |
+| Helm chart | `bitnami/clickhouse` `9.4.7` | `workloads/olap-databases/clickhouse/kubernetes/helm/README.md` |
+| Runtime image tag | `25.7.5-debian-12-r0` | `workloads/olap-databases/clickhouse/kubernetes/helm/clickhouse-values.yaml` |
+
+
 ## The target architecture
 
 ![ClickHouse on AKS architecture](../assets/clickhouse-on-aks-architecture.svg)

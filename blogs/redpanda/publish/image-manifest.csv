@@ -1,0 +1,3 @@
+file_name,alt_text,placement,notes
+redpanda-brokers.png,Redpanda broker StatefulSet and PVC placement on AKS,body,Replace with validated kubectl or portal screenshot
+redpanda-listeners.png,Internal listener and TLS posture for the AKS Redpanda deployment,body,Replace with validated screenshot or diagram from deployment

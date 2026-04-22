@@ -30,6 +30,12 @@ param managedIdentities object = {
   systemAssigned: true
 }
 
+@description('Whether to enable the AKS OIDC issuer profile.')
+param enableOidcIssuerProfile bool = false
+
+@description('Whether to enable AKS workload identity support.')
+param enableWorkloadIdentity bool = false
+
 @description('Whether to disable local AKS accounts. Keep this false unless the cluster is AAD-integrated.')
 param disableLocalAccounts bool = false
 
@@ -51,9 +57,31 @@ module managedCluster 'br/public:avm/res/container-service/managed-cluster:0.13.
     primaryAgentPoolProfiles: primaryAgentPoolProfiles
     agentPools: agentPools
     managedIdentities: managedIdentities
+    enableOidcIssuerProfile: enableOidcIssuerProfile
+    securityProfile: enableWorkloadIdentity
+      ? {
+          workloadIdentity: {
+            enabled: true
+          }
+        }
+      : null
     disableLocalAccounts: disableLocalAccounts
     enableStorageProfileDiskCSIDriver: enableStorageProfileDiskCSIDriver
     enableStorageProfileFileCSIDriver: enableStorageProfileFileCSIDriver
     enableStorageProfileSnapshotController: enableStorageProfileSnapshotController
   }
 }
+
+output resourceGroupName string = resourceGroup().name
+output location string = location
+output clusterName string = managedCluster.outputs.name
+output clusterResourceId string = managedCluster.outputs.resourceId
+output clusterOidcIssuerEnabled bool = enableOidcIssuerProfile
+output clusterOidcIssuerUrl string? = managedCluster.outputs.?oidcIssuerUrl
+output clusterWorkloadIdentityEnabled bool = enableWorkloadIdentity
+output clusterIdentityTenantId string = subscription().tenantId
+output clusterSystemAssignedIdentityPrincipalId string? = managedCluster.outputs.?systemAssignedMIPrincipalId
+output clusterUserAssignedIdentityResourceIds array = managedIdentities.?userAssignedResourceIds ?? []
+output kubeletIdentityClientId string? = managedCluster.outputs.?kubeletIdentityClientId
+output kubeletIdentityObjectId string? = managedCluster.outputs.?kubeletIdentityObjectId
+output kubeletIdentityResourceId string? = managedCluster.outputs.?kubeletIdentityResourceId

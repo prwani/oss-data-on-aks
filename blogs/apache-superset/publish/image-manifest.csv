@@ -1,0 +1,3 @@
+file_name,alt_text,placement,notes
+superset-ui.png,Apache Superset UI reached through an internal AKS load balancer,body,Replace with validated screenshot from a deployed cluster
+superset-runtime-topology.png,Superset web workers init job PostgreSQL and Redis resources on AKS,body,Replace with validated kubectl or portal view

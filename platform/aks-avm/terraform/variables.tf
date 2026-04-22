@@ -90,6 +90,18 @@ variable "managed_identities" {
   }
 }
 
+variable "enable_oidc_issuer" {
+  description = "Whether to enable the AKS OIDC issuer profile."
+  type        = bool
+  default     = false
+}
+
+variable "enable_workload_identity" {
+  description = "Whether to enable AKS workload identity support."
+  type        = bool
+  default     = false
+}
+
 variable "disable_local_accounts" {
   description = "Whether to disable local AKS accounts. Keep this false unless the cluster is AAD-integrated."
   type        = bool

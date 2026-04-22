@@ -64,6 +64,18 @@ The OpenSearch workload in the repo is organized around five practical building 
 
 That split is intentional. It keeps AKS platform concerns reusable while still letting the workload carry its own installation and operational guidance.
 
+## Checked-in version contract
+
+These are the repo-backed versions this walkthrough currently matches.
+
+| Component | Checked-in version | Evidence in repo |
+| --- | --- | --- |
+| Manager and data charts | `opensearch/opensearch` `3.6.0` | `workloads/search-analytics/opensearch/kubernetes/helm/README.md` |
+| Dashboards chart | `opensearch/opensearch-dashboards` `3.6.0` | `workloads/search-analytics/opensearch/kubernetes/helm/README.md` |
+
+The checked-in values intentionally inherit runtime images from those chart defaults, so the chart version is the most concrete repo-backed contract to revalidate before publication.
+
+
 ## The target architecture
 
 For the first opinionated OpenSearch blueprint in this repo, I am using this starting pattern:
@@ -138,6 +150,7 @@ terraform apply
 ```
 
 The current wrappers focus on the AKS baseline and a starter snapshot storage account. They are designed to be a strong repo contract, not a claim that every day-2 detail is already automated.
+When snapshot storage is enabled, the wrappers also turn on the AKS OIDC issuer and workload identity features, create a user-assigned managed identity plus federated credentials for the OpenSearch snapshot service accounts, and disable shared-key access on the starter storage account.
 The checked-in wrappers provision `systempool`, `osmgr`, and `osdata`. The dedicated `osmgr` and `osdata` pools start with three nodes each so the default manager and data replicas can satisfy their hard anti-affinity rules.
 
 ## Step 2: Connect to AKS and create the namespace
@@ -153,6 +166,8 @@ kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/mana
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/namespace.yaml
 ```
 
+If you kept snapshot storage enabled, capture the snapshot managed identity client ID from your deployment outputs because the Helm install uses it to annotate the workload-identity service accounts.
+
 ## Step 3: Create the bootstrap secrets
 
 The blueprint ships example secret manifests for:
@@ -160,14 +175,21 @@ The blueprint ships example secret manifests for:
 - the initial OpenSearch admin password
 - the Dashboards username, password, and cookie secret
 
-Create real versions of these before applying them:
+Treat those YAML files as templates only. Create real secrets instead of applying the example manifests unchanged:
 
 ```bash
-kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/opensearch-admin-credentials.example.yaml
-kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/opensearch-dashboards-auth.example.yaml
-```
+kubectl create secret generic opensearch-admin-credentials \
+  --namespace opensearch \
+  --from-literal=password='<strong-admin-password>' \
+  --dry-run=client -o yaml | kubectl apply -f -
 
-In a real environment, replace the placeholder values first and then move toward a stronger secret delivery pattern over time.
+kubectl create secret generic opensearch-dashboards-auth \
+  --namespace opensearch \
+  --from-literal=username='admin' \
+  --from-literal=password='<strong-admin-password>' \
+  --from-literal=cookie='<32-character-cookie-secret>' \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
 
 ## Step 4: Install the manager tier
 
@@ -175,6 +197,7 @@ This blueprint uses a separate release for manager nodes. The surrounding docs u
 
 ```bash
 export OPENSEARCH_HELM_VERSION=3.6.0
+export SNAPSHOT_IDENTITY_CLIENT_ID=<snapshot-managed-identity-client-id>
 
 helm repo add opensearch https://opensearch-project.github.io/helm-charts/
 helm repo update
@@ -182,6 +205,7 @@ helm repo update
 helm upgrade --install opensearch-manager opensearch/opensearch \
   --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
+  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/manager-values.yaml
 ```
 
@@ -191,6 +215,7 @@ The manager values focus on:
 - Premium SSD-backed PVCs
 - hard anti-affinity
 - optional node-pool targeting for an `osmgr` AKS pool
+- `repository-azure` plus `azure.client.default.token_credential_type: managed_identity` for the keyless snapshot path
 
 ## Step 5: Install the data tier
 
@@ -200,6 +225,7 @@ The data release joins the same cluster and points back to the manager service f
 helm upgrade --install opensearch-data opensearch/opensearch \
   --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
+  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/data-values.yaml
 ```
 

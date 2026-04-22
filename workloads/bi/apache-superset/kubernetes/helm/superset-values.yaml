@@ -117,6 +117,8 @@ init:
       cpu: "1000m"
       memory: "2Gi"
 
+# Bitnami dependency subcharts do not inherit the root-level selector and
+# tolerations, so pin PostgreSQL and Redis explicitly as well.
 postgresql:
   enabled: true
   auth:
@@ -170,6 +172,8 @@ redis:
         value: superset
         effect: NoSchedule
 
+# The Superset chart applies the root-level selector and tolerations to the web
+# deployment, worker deployment, init job, and optional future chart components.
 nodeSelector:
   agentpool: superset
 

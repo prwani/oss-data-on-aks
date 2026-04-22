@@ -37,16 +37,28 @@ See [`catalog/README.md`](./catalog/README.md) for the current blueprint matrix.
 .
 ├── blogs/                  # TechCommunity-ready blog source, metadata, and asset manifests
 ├── catalog/                # High-level inventory of workloads and delivery status
-├── docs/                   # Shared platform and operator guidance
+├── docs/                   # Shared platform, operator, and contributor guidance
 ├── platform/               # Shared AKS AVM baseline for Terraform and Bicep
 ├── templates/              # Reusable starter files for future workloads
 └── workloads/              # Workload blueprints grouped by platform category
 ```
 
+## Shared guidance
+
+| Need | Start here |
+| --- | --- |
+| Choose an operator path | [`docs/user-journeys/portal.md`](./docs/user-journeys/portal.md) or [`docs/user-journeys/az-cli.md`](./docs/user-journeys/az-cli.md) |
+| Understand the shared AKS baseline | [`docs/platform/architecture.md`](./docs/platform/architecture.md) and [`platform/aks-avm`](./platform/aks-avm) |
+| Plan identity, secrets, and service exposure | [`docs/platform/security.md`](./docs/platform/security.md) |
+| Plan storage, retention, and backup posture | [`docs/platform/storage.md`](./docs/platform/storage.md) |
+| Plan logs, metrics, alerts, and runbooks | [`docs/platform/observability.md`](./docs/platform/observability.md) |
+| Add a new blueprint | [`CONTRIBUTING.md`](./CONTRIBUTING.md), [`docs/contribution-model.md`](./docs/contribution-model.md), and [`templates/workload-template`](./templates/workload-template) |
+
 ## Start here
 
-1. Review the shared AKS baseline in [`platform/aks-avm`](./platform/aks-avm).
-2. Pick a workload under [`workloads`](./workloads).
-3. Follow either the portal or `az` CLI guidance in that workload.
-4. Extend the workload-specific Terraform and Bicep entry points.
-5. Use [`blogs`](./blogs) when you are ready to turn the implementation into publishable guidance.
+1. Review the shared AKS baseline in [`platform/aks-avm`](./platform/aks-avm) and the platform-wide guidance in [`docs/platform`](./docs/platform).
+2. Pick the shared operator path that matches your team: portal-first or `az` CLI-first.
+3. Choose a workload under [`workloads`](./workloads) and read its `README.md`, `docs/architecture.md`, and deployment guide.
+4. Use the workload Terraform or Bicep wrapper, then apply the workload-specific Kubernetes assets and validation steps.
+5. When adding a new blueprint, start with [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`templates/workload-template`](./templates/workload-template).
+6. Use [`blogs`](./blogs) when you are ready to turn the implementation into publishable guidance.

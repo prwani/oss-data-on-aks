@@ -31,7 +31,9 @@ Those storage and topology requirements are why this blueprint emphasizes dedica
 | OpenSearch API | `ClusterIP` only | Limits attack surface |
 | Dashboards | Internal Azure load balancer | Gives operators access without exposing the API publicly |
 | Persistent storage | `managed-csi-premium` | Sensible default for durable SSD-backed volumes |
-| Snapshots | Azure Blob Storage | External recovery point beyond PVCs |
+| Snapshots | Azure Blob Storage with AKS Workload Identity | External recovery point beyond PVCs without storage account keys |
+
+The checked-in Azure wrappers now make the snapshot path explicitly keyless: they enable AKS workload identity, create a user-assigned managed identity plus federated credentials for the manager and data service accounts, and disable shared-key access on the starter storage account.
 
 ## Architecture visuals
 
@@ -77,9 +79,9 @@ Using stable release names keeps service discovery, example manifests, and docum
 This blueprint now includes:
 
 - a documented target architecture
-- example Azure deployment wrappers for AKS baseline and snapshot storage
+- example Azure deployment wrappers for the AKS baseline and a managed-identity-first snapshot storage path
 - Helm values for manager nodes, data nodes, and Dashboards
-- namespace and secret examples
+- namespace and secret examples plus workload-identity-aware Helm settings
 - a two-part blog package for external publication
 
-It does **not** yet claim to automate every production hardening task end to end. Snapshot repository registration, certificate replacement, and private endpoint integration should still be validated for the target environment.
+It does **not** yet claim to automate every production hardening task end to end. Snapshot repository registration is still an operator step, and certificate replacement plus private endpoint integration should still be validated for the target environment.
