@@ -1,0 +1,180 @@
+image:
+  tag: "5.0.0"
+
+serviceAccountName: superset
+serviceAccount:
+  create: true
+
+secretEnv:
+  create: false
+envFromSecret: superset-env
+
+service:
+  type: LoadBalancer
+  port: 8088
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+
+ingress:
+  enabled: false
+
+extraEnv:
+  SUPERSET_ENV: production
+  GUNICORN_TIMEOUT: "300"
+  SERVER_WORKER_AMOUNT: "4"
+  SERVER_THREADS_AMOUNT: "20"
+
+configOverrides:
+  secret: |
+    import os
+    SECRET_KEY = os.environ["SUPERSET_SECRET_KEY"]
+  aks_defaults: |
+    ENABLE_PROXY_FIX = True
+    SUPERSET_WEBSERVER_TIMEOUT = 300
+    SQLLAB_ASYNC_TIME_LIMIT_SEC = 900
+
+supersetNode:
+  replicas:
+    enabled: true
+    replicaCount: 2
+  connections:
+    redis_host: superset-redis-headless
+    redis_port: "6379"
+    redis_user: ""
+    redis_password: ""
+    redis_cache_db: "1"
+    redis_celery_db: "0"
+    db_type: postgresql
+    db_host: superset-postgresql
+    db_port: "5432"
+    db_user: superset
+    db_pass: ""
+    db_name: superset
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+    maxUnavailable: null
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: superset
+            topologyKey: kubernetes.io/hostname
+
+supersetWorker:
+  replicas:
+    enabled: true
+    replicaCount: 2
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: null
+    maxUnavailable: 1
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: superset-worker
+            topologyKey: kubernetes.io/hostname
+
+supersetCeleryBeat:
+  enabled: false
+
+supersetCeleryFlower:
+  enabled: false
+
+supersetWebsockets:
+  enabled: false
+
+init:
+  enabled: true
+  loadExamples: false
+  createAdmin: false
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+
+postgresql:
+  enabled: true
+  auth:
+    username: superset
+    password: ""
+    database: superset
+    existingSecret: superset-postgresql-auth
+  primary:
+    persistence:
+      enabled: true
+      storageClass: managed-csi-premium
+      size: 16Gi
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+    nodeSelector:
+      agentpool: superset
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: superset
+        effect: NoSchedule
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+    password: ""
+  master:
+    persistence:
+      enabled: true
+      storageClass: managed-csi-premium
+      size: 8Gi
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+    nodeSelector:
+      agentpool: superset
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: superset
+        effect: NoSchedule
+
+nodeSelector:
+  agentpool: superset
+
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: superset
+    effect: NoSchedule

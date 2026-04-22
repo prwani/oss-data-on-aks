@@ -1,0 +1,19 @@
+title: "Running Apache Kafka on AKS with KRaft and an AKS AVM baseline"
+target_blog: "Microsoft TechCommunity Linux and Open Source Blog"
+author: "Prafulla Wani"
+status: "draft"
+workload: "Apache Kafka"
+series:
+  - "Apache Kafka on AKS"
+tags:
+  - AKS
+  - Azure
+  - Apache Kafka
+  - KRaft
+  - Kubernetes
+  - Linux and Open Source
+summary: "A concrete starter blueprint for running Apache Kafka 4.0 on AKS with AKS AVM infrastructure, a dedicated kafka node pool, Bitnami chart 32.4.4, and internal-first operational guidance."
+canonical_repo_path: "blogs/apache-kafka"
+review_notes:
+  - "Validate the final chart version string against the Helm repository before publication."
+  - "Add screenshots only if the publication workflow requires portal or kubectl visuals."

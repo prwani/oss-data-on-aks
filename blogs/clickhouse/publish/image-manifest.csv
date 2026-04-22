@@ -1,0 +1,2 @@
+file_name,alt_text,placement,notes
+clickhouse-on-aks-architecture.svg,"ClickHouse on AKS shard replica and Keeper architecture","hero","Original SVG showing the dedicated clickhouse node pool, Keeper quorum, and per-replica Premium SSD storage"

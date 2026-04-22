@@ -1,0 +1,73 @@
+# Pinned to redpanda/redpanda chart 26.1.1 / appVersion v26.1.1.
+fullnameOverride: redpanda
+
+image:
+  tag: v26.1.1
+
+commonLabels:
+  app.kubernetes.io/part-of: redpanda-on-aks
+
+console:
+  enabled: false
+
+logging:
+  usageStats:
+    enabled: false
+
+tuning:
+  tune_aio_events: true
+
+external:
+  enabled: false
+  service:
+    enabled: false
+
+resources:
+  cpu:
+    cores: 4
+  memory:
+    container:
+      min: 12Gi
+      max: 12Gi
+
+storage:
+  persistentVolume:
+    enabled: true
+    size: 256Gi
+    storageClass: managed-csi-premium
+  tiered:
+    mountType: none
+    config:
+      cloud_storage_enabled: false
+      cloud_storage_enable_remote_read: false
+      cloud_storage_enable_remote_write: false
+
+statefulset:
+  replicas: 3
+  budget:
+    maxUnavailable: 1
+  podAntiAffinity:
+    type: hard
+    topologyKey: kubernetes.io/hostname
+  podTemplate:
+    spec:
+      nodeSelector:
+        agentpool: rpbroker
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: redpanda-broker
+          effect: NoSchedule
+
+auth:
+  sasl:
+    enabled: false
+
+tls:
+  enabled: true
+
+serviceAccount:
+  create: true
+
+rbac:
+  enabled: true

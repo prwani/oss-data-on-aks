@@ -1,0 +1,5 @@
+Apache Kafka on AKS is not just another stateless `Deployment`.
+
+This repo-backed blueprint uses AKS AVM for the cluster baseline, Bitnami Kafka chart 32.4.4 in KRaft mode, a dedicated `kafka` node pool, Premium SSD-backed PVCs, and internal-only exposure by default.
+
+If you want a practical starting point for controller quorum, broker storage, listener topology, and stateful upgrades on AKS, this package walks through the workload and the matching publication copy.

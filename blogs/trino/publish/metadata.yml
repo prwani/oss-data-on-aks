@@ -1,0 +1,17 @@
+title: "Running Trino on AKS with an AKS AVM baseline"
+target_blog: "Microsoft TechCommunity Linux and Open Source Blog"
+author: "Prafulla Wani"
+status: "draft"
+workload: "Trino"
+tags:
+  - AKS
+  - Azure
+  - Trino
+  - Kubernetes
+  - Linux and Open Source
+summary: "A starter Azure-first blueprint for running Trino on AKS with a dedicated query node pool, private-by-default service exposure, and a runnable tpch catalog."
+canonical_repo_path: "blogs/trino"
+hero_image: "blogs/trino/assets/trino-on-aks-architecture.svg"
+review_notes:
+  - "Confirm the final Trino chart version remains 1.42.1 and the appVersion remains 479 when the post is published."
+  - "If publication requires live screenshots in addition to the repo-owned SVG, capture them from a deployed cluster rather than substituting mock imagery."

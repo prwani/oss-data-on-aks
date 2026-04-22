@@ -1,0 +1,19 @@
+title: "Running Redpanda on AKS with a dedicated broker pool and internal-only listeners"
+target_blog: "Microsoft TechCommunity Linux and Open Source Blog"
+author: "Prafulla Wani"
+status: "draft"
+workload: "Redpanda"
+series:
+  - "Redpanda on AKS"
+  - "Stateful streaming on AKS"
+tags:
+  - AKS
+  - Azure
+  - Redpanda
+  - Kubernetes
+  - Streaming
+summary: "A starter blueprint for running Redpanda 26.1.1 on AKS with an AVM cluster baseline, a dedicated rpbroker node pool, Premium SSD-backed PVCs, cert-manager-backed TLS, and internal-only listeners by default."
+canonical_repo_path: "blogs/redpanda"
+review_notes:
+  - "Validate the final chart version and cert-manager version during publication."
+  - "Confirm the listener exposure wording still matches the checked-in Helm values."

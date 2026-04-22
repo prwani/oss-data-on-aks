@@ -1,0 +1,45 @@
+apiVersion: spark.apache.org/v1
+kind: SparkApplication
+metadata:
+  name: spark-pi
+  namespace: spark
+  labels:
+    app.kubernetes.io/name: apache-spark
+    app.kubernetes.io/component: sample
+spec:
+  mainClass: "org.apache.spark.examples.SparkPi"
+  jars: "local:///opt/spark/examples/jars/spark-examples.jar"
+  sparkConf:
+    spark.dynamicAllocation.enabled: "true"
+    spark.dynamicAllocation.shuffleTracking.enabled: "true"
+    spark.dynamicAllocation.initialExecutors: "2"
+    spark.dynamicAllocation.minExecutors: "2"
+    spark.dynamicAllocation.maxExecutors: "3"
+    spark.driver.memory: "1536m"
+    spark.executor.cores: "1"
+    spark.executor.memory: "2g"
+    spark.local.dir: "/var/data/spark-local-dir"
+    spark.kubernetes.authenticate.driver.serviceAccountName: "spark"
+    spark.kubernetes.container.image: "apache/spark:4.1.1-scala"
+    spark.kubernetes.driver.node.selector.agentpool: "spark"
+    spark.kubernetes.executor.node.selector.agentpool: "spark"
+    spark.kubernetes.driver.pod.name: "spark-pi-driver"
+    spark.kubernetes.executor.podNamePrefix: "spark-pi"
+    spark.kubernetes.driver.pod.excludedFeatureSteps: "org.apache.spark.deploy.k8s.features.KerberosConfDriverFeatureStep"
+    spark.kubernetes.driver.tolerations: '[{"key":"dedicated","operator":"Equal","value":"spark","effect":"NoSchedule"}]'
+    spark.kubernetes.executor.tolerations: '[{"key":"dedicated","operator":"Equal","value":"spark","effect":"NoSchedule"}]'
+    spark.kubernetes.driver.volumes.emptyDir.spark-local-dir-1.mount.path: "/var/data/spark-local-dir"
+    spark.kubernetes.driver.volumes.emptyDir.spark-local-dir-1.mount.readOnly: "false"
+    spark.kubernetes.driver.volumes.emptyDir.spark-local-dir-1.options.sizeLimit: "20Gi"
+    spark.kubernetes.executor.volumes.emptyDir.spark-local-dir-1.mount.path: "/var/data/spark-local-dir"
+    spark.kubernetes.executor.volumes.emptyDir.spark-local-dir-1.mount.readOnly: "false"
+    spark.kubernetes.executor.volumes.emptyDir.spark-local-dir-1.options.sizeLimit: "50Gi"
+  applicationTolerations:
+    restartConfig:
+      restartPolicy: Never
+    resourceRetainPolicy: Always
+    resourceRetainDurationMillis: 600000
+    ttlAfterStopMillis: 1800000
+  runtimeVersions:
+    scalaVersion: "2.13"
+    sparkVersion: "4.1.1"

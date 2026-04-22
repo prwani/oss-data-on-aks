@@ -8,3 +8,6 @@
 *.bicepbuild.*
 *.azcli
 
+# Compiled Bicep ARM output
+**/infra/bicep/main.json
+

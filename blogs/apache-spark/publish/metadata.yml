@@ -1,0 +1,16 @@
+title: "Running Apache Spark on AKS with the official Spark Kubernetes Operator and a dedicated job pool"
+target_blog: "Microsoft TechCommunity Linux and Open Source Blog"
+author: "Prafulla Wani"
+status: "draft"
+workload: "Apache Spark"
+tags:
+  - AKS
+  - Azure
+  - Apache Spark
+  - Kubernetes
+  - Linux and Open Source
+summary: "A production-minded starter blueprint for Apache Spark 4.1.1 on AKS with AKS AVM infrastructure, the official Spark Kubernetes Operator chart 1.6.0, a dedicated spark node pool, and concrete SparkApplication manifests."
+canonical_repo_path: "blogs/apache-spark"
+review_notes:
+  - "Validate the Spark operator chart 1.6.0 against the target AKS version before publication."
+  - "Capture one SparkApplication status screenshot and one driver UI screenshot from a real deployment if the post is published externally."

@@ -2,7 +2,7 @@
 
 Reusable starter repository for deploying open-source data and analytics platforms on **Azure Kubernetes Service (AKS)** with **Azure Verified Modules (AVM)** as the infrastructure baseline.
 
-This scaffold is designed for:
+This repository is designed for:
 
 - teams that prefer **Terraform**
 - teams that prefer **Bicep**
@@ -50,4 +50,3 @@ See [`catalog/README.md`](./catalog/README.md) for the current blueprint matrix.
 3. Follow either the portal or `az` CLI guidance in that workload.
 4. Extend the workload-specific Terraform and Bicep entry points.
 5. Use [`blogs`](./blogs) when you are ready to turn the implementation into publishable guidance.
-

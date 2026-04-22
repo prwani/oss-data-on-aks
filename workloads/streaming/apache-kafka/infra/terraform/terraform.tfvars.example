@@ -1,0 +1,13 @@
+environment_name     = "dev"
+location             = "eastus"
+resource_group_name  = "rg-apache-kafka-aks-dev"
+cluster_name         = "aks-apache-kafka-dev"
+system_node_vm_size  = "Standard_D2s_v5"
+system_node_count    = 1
+kafka_node_vm_size   = "Standard_D4s_v5"
+kafka_node_count     = 3
+kafka_node_os_disk_size_gb = 128
+
+tags = {
+  owner = "data-platform-team"
+}

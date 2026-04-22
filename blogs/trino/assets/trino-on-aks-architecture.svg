@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Trino on AKS architecture</title>
+  <desc id="desc">AKS cluster with a system pool, a dedicated trino user pool, one coordinator, three workers, a private ClusterIP service, and a tpch catalog.</desc>
+  <style>
+    .bg { fill: #f7fbff; }
+    .cluster { fill: #ffffff; stroke: #0f6cbd; stroke-width: 3; }
+    .pool { fill: #e8f3ff; stroke: #0f6cbd; stroke-width: 2; }
+    .box { fill: #ffffff; stroke: #1f1f1f; stroke-width: 1.5; rx: 16; ry: 16; }
+    .service { fill: #e6f4ea; stroke: #107c10; stroke-width: 2; }
+    .catalog { fill: #fff4ce; stroke: #c19c00; stroke-width: 2; }
+    .edge { stroke: #605e5c; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+    .title { font: 700 32px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+    .subtitle { font: 600 20px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+    .label { font: 600 16px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+    .small { font: 14px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#605e5c" />
+    </marker>
+  </defs>
+  <rect class="bg" width="1200" height="720" rx="28" ry="28"/>
+  <text class="title" x="48" y="54">Trino on AKS starter blueprint</text>
+  <text class="small" x="48" y="82">Pinned to Trino chart 1.42.1 / appVersion 479 with private coordinator access.</text>
+
+  <rect class="cluster" x="40" y="110" width="1120" height="560" rx="28" ry="28"/>
+  <text class="subtitle" x="72" y="150">AKS cluster</text>
+
+  <rect class="pool" x="72" y="190" width="250" height="180" rx="22" ry="22"/>
+  <text class="subtitle" x="96" y="226">systempool</text>
+  <rect class="box" x="96" y="252" width="202" height="88" rx="16" ry="16"/>
+  <text class="label" x="116" y="286">AKS add-ons</text>
+  <text class="small" x="116" y="312">CoreDNS, metrics, control-plane agents</text>
+
+  <rect class="pool" x="356" y="190" width="772" height="430" rx="22" ry="22"/>
+  <text class="subtitle" x="380" y="226">Dedicated user pool: trino (3 nodes)</text>
+  <text class="small" x="380" y="252">Taint: dedicated=trino:NoSchedule</text>
+
+  <rect class="box" x="404" y="282" width="286" height="112" rx="16" ry="16"/>
+  <text class="label" x="426" y="316">Deployment: trino-coordinator</text>
+  <text class="small" x="426" y="342">1 replica</text>
+  <text class="small" x="426" y="364">SQL parsing, planning, scheduling, UI</text>
+
+  <rect class="service" x="744" y="290" width="324" height="96" rx="18" ry="18"/>
+  <text class="label" x="768" y="324">Service: trino</text>
+  <text class="small" x="768" y="350">ClusterIP on port 8080</text>
+  <text class="small" x="768" y="372">Port-forward or internal LB override</text>
+
+  <rect class="box" x="404" y="446" width="208" height="118" rx="16" ry="16"/>
+  <text class="label" x="426" y="480">trino-worker-0</text>
+  <text class="small" x="426" y="506">Worker replica</text>
+  <text class="small" x="426" y="528">JVM heap + node-local spill</text>
+
+  <rect class="box" x="636" y="446" width="208" height="118" rx="16" ry="16"/>
+  <text class="label" x="658" y="480">trino-worker-1</text>
+  <text class="small" x="658" y="506">Worker replica</text>
+  <text class="small" x="658" y="528">JVM heap + node-local spill</text>
+
+  <rect class="box" x="868" y="446" width="208" height="118" rx="16" ry="16"/>
+  <text class="label" x="890" y="480">trino-worker-2</text>
+  <text class="small" x="890" y="506">Worker replica</text>
+  <text class="small" x="890" y="528">JVM heap + node-local spill</text>
+
+  <rect class="catalog" x="72" y="430" width="250" height="146" rx="22" ry="22"/>
+  <text class="subtitle" x="96" y="468">Catalogs</text>
+  <text class="label" x="96" y="508">tpch</text>
+  <text class="small" x="96" y="534">Runnable smoke-test catalog</text>
+  <text class="small" x="96" y="556">No external metastore required</text>
+
+  <path class="edge" d="M 690 338 L 744 338"/>
+  <path class="edge" d="M 512 394 L 512 446"/>
+  <path class="edge" d="M 548 394 L 740 446"/>
+  <path class="edge" d="M 584 394 L 972 446"/>
+  <path class="edge" d="M 322 504 L 404 504"/>
+
+  <text class="small" x="404" y="604">Workers run on the dedicated pool and use emptyDir-backed spill space for large joins and sorts.</text>
+</svg>

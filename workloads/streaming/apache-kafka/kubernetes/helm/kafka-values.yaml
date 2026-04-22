@@ -1,0 +1,121 @@
+# Bitnami Kafka chart 32.4.4 starter values for Kafka 4.0.0 on AKS.
+# The release name assumed by the docs is `kafka` in namespace `kafka`.
+
+commonLabels:
+  app.kubernetes.io/part-of: apache-kafka-on-aks
+
+kraftVersion: 1
+
+config:
+  auto.create.topics.enable: false
+  default.replication.factor: 3
+  min.insync.replicas: 2
+  num.partitions: 6
+  offsets.topic.replication.factor: 3
+  transaction.state.log.replication.factor: 3
+  transaction.state.log.min.isr: 2
+  log.retention.hours: 168
+  log.retention.check.interval.ms: 300000
+  log.segment.bytes: 1073741824
+  unclean.leader.election.enable: false
+  delete.topic.enable: true
+
+listeners:
+  client:
+    protocol: SASL_PLAINTEXT
+  controller:
+    protocol: SASL_PLAINTEXT
+  interbroker:
+    protocol: SASL_PLAINTEXT
+
+sasl:
+  enabledMechanisms: PLAIN
+  interBrokerMechanism: PLAIN
+  controllerMechanism: PLAIN
+  interbroker:
+    user: inter_broker_user
+  controller:
+    user: controller_user
+  client:
+    users:
+      - platform-client
+  existingSecret: kafka-auth
+
+controller:
+  replicaCount: 3
+  controllerOnly: true
+  heapOpts: "-Xms1g -Xmx1g"
+  resourcesPreset: none
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "2Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  podAntiAffinityPreset: hard
+  nodeSelector:
+    agentpool: kafka
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: kafka
+      effect: NoSchedule
+  pdb:
+    create: true
+    minAvailable: 2
+  persistentVolumeClaimRetentionPolicy:
+    enabled: true
+    whenScaled: Retain
+    whenDeleted: Retain
+  persistence:
+    enabled: true
+    storageClass: managed-csi-premium
+    size: 32Gi
+  enableServiceLinks: false
+  minReadySeconds: 10
+  updateStrategy:
+    type: RollingUpdate
+
+broker:
+  replicaCount: 3
+  minId: 100
+  heapOpts: "-Xms4g -Xmx4g"
+  resourcesPreset: none
+  resources:
+    requests:
+      cpu: "1500m"
+      memory: "8Gi"
+    limits:
+      cpu: "2000m"
+      memory: "8Gi"
+  podAntiAffinityPreset: hard
+  nodeSelector:
+    agentpool: kafka
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: kafka
+      effect: NoSchedule
+  pdb:
+    create: true
+    minAvailable: 2
+  persistentVolumeClaimRetentionPolicy:
+    enabled: true
+    whenScaled: Retain
+    whenDeleted: Retain
+  persistence:
+    enabled: true
+    storageClass: managed-csi-premium
+    size: 256Gi
+  enableServiceLinks: false
+  minReadySeconds: 10
+  updateStrategy:
+    type: RollingUpdate
+
+service:
+  type: ClusterIP
+  annotations: {}
+
+externalAccess:
+  enabled: false

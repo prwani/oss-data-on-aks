@@ -1,0 +1,134 @@
+image:
+  repository: trinodb/trino
+  tag: "479"
+
+server:
+  workers: 3
+  node:
+    environment: aks-trino-dev
+  log:
+    trino:
+      level: INFO
+  config:
+    query:
+      maxMemory: "6GB"
+  autoscaling:
+    enabled: false
+  keda:
+    enabled: false
+  workerExtraConfig: |
+    spiller-spill-path=/var/trino/spill
+    spiller-max-used-space-threshold=0.8
+    max-spill-per-node=50GB
+    query-max-spill-per-node=16GB
+
+additionalConfigProperties:
+  - query.max-total-memory=9GB
+  - spill-enabled=true
+
+catalogs:
+  tpch: |
+    connector.name=tpch
+    tpch.splits-per-node=16
+
+service:
+  annotations: {}
+  type: ClusterIP
+  port: 8080
+
+coordinator:
+  jvm:
+    maxHeapSize: "4G"
+    gcMethod:
+      type: UseG1GC
+      g1:
+        heapRegionSize: "32M"
+  config:
+    memory:
+      heapHeadroomPerNode: "1GB"
+    nodeScheduler:
+      includeCoordinator: false
+    query:
+      maxMemoryPerNode: "1GB"
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "6Gi"
+    limits:
+      cpu: "2000m"
+      memory: "6Gi"
+  nodeSelector:
+    agentpool: trino
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "trino"
+      effect: "NoSchedule"
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  terminationGracePeriodSeconds: 60
+
+worker:
+  jvm:
+    maxHeapSize: "8G"
+    gcMethod:
+      type: UseG1GC
+      g1:
+        heapRegionSize: "32M"
+  config:
+    memory:
+      heapHeadroomPerNode: "2GB"
+    query:
+      maxMemoryPerNode: "2GB"
+  resources:
+    requests:
+      cpu: "2000m"
+      memory: "12Gi"
+    limits:
+      cpu: "4000m"
+      memory: "12Gi"
+  nodeSelector:
+    agentpool: trino
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "trino"
+      effect: "NoSchedule"
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: trino
+                app.kubernetes.io/component: worker
+  additionalVolumes:
+    - name: spill
+      emptyDir: {}
+  additionalVolumeMounts:
+    - name: spill
+      mountPath: /var/trino/spill
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  gracefulShutdown:
+    enabled: true
+    gracePeriodSeconds: 120
+  terminationGracePeriodSeconds: 240

@@ -1,0 +1,14 @@
+environment_name               = "dev"
+location                       = "eastus"
+resource_group_name            = "rg-apache-airflow-aks-dev"
+cluster_name                   = "aks-apache-airflow-dev"
+system_node_pool_name          = "systempool"
+system_node_pool_vm_size       = "Standard_D2s_v5"
+system_node_pool_count         = 1
+airflow_node_pool_name         = "airflow"
+airflow_node_pool_vm_size      = "Standard_D4s_v5"
+airflow_node_pool_count        = 3
+airflow_node_pool_os_disk_size_gb = 128
+tags = {
+  owner = "data-platform-team"
+}

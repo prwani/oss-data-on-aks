@@ -1,0 +1,3 @@
+Redpanda on AKS needs a different starting pattern than a stateless microservice.
+
+This draft walks through an Azure-first blueprint: AKS AVM as the baseline, a dedicated `rpbroker` pool, Premium SSD-backed PVCs, cert-manager-backed TLS, and internal-only listeners by default.

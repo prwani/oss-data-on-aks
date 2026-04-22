@@ -1,0 +1,16 @@
+title: "Running Apache Airflow on AKS with dedicated schedulers, workers, and an internal-only UI"
+target_blog: "Microsoft TechCommunity Linux and Open Source Blog"
+author: "Prafulla Wani"
+status: "draft"
+workload: "Apache Airflow"
+tags:
+  - AKS
+  - Azure
+  - Apache Airflow
+  - Kubernetes
+  - Linux and Open Source
+summary: "A production-minded starter blueprint for Apache Airflow 3.2.0 on AKS with AKS AVM infrastructure, a dedicated Airflow node pool, internal-only UI exposure, and concrete Helm, Terraform, and Bicep assets."
+canonical_repo_path: "blogs/apache-airflow"
+review_notes:
+  - "Validate the Airflow 1.21.0 chart commands against the final release notes before publication."
+  - "Capture one UI screenshot from the internal load balancer flow if the post is published externally."

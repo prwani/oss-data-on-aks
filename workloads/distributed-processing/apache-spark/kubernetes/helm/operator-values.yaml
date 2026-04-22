@@ -1,0 +1,37 @@
+operatorDeployment:
+  operatorPod:
+    nodeSelector:
+      agentpool: systempool
+    operatorContainer:
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+          ephemeral-storage: 1Gi
+        limits:
+          cpu: "1000m"
+          memory: "1Gi"
+          ephemeral-storage: 2Gi
+
+workloadResources:
+  namespaces:
+    create: false
+    overrideWatchedNamespaces: true
+    data:
+      - spark
+  serviceAccount:
+    create: false
+    name: spark
+  role:
+    create: false
+    name: spark-workload
+  clusterRole:
+    create: false
+    name: spark-workload
+  roleBinding:
+    create: false
+    name: spark-workload
+
+operatorConfiguration:
+  spark-operator.properties: |+
+    spark.kubernetes.operator.reconciler.intervalSeconds=30

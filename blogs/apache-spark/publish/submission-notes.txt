@@ -1,0 +1,11 @@
+Apache Spark on AKS submission notes
+
+Package contents:
+- source/apache-spark-on-aks.md
+- publish/metadata.yml
+- publish/social-copy.txt
+
+Before submission:
+1. Validate the final Spark operator chart and Spark image versions against current release notes.
+2. Capture one screenshot of `kubectl get sparkapplications -n spark` and one of the driver UI from a real deployment.
+3. Confirm the AKS version used in the walkthrough satisfies the operator chart requirement.

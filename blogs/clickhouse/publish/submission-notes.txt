@@ -1,0 +1,13 @@
+ClickHouse on AKS submission notes
+
+Package contents:
+- source/clickhouse-on-aks.md
+- publish/metadata.yml
+- publish/social-copy.txt
+- publish/image-manifest.csv
+- assets/clickhouse-on-aks-architecture.svg
+
+Before submission:
+1. Re-check the pinned Bitnami chart and ClickHouse appVersion in the final walkthrough.
+2. Validate the command samples against a live AKS cluster once more before publication.
+3. If the editorial workflow asks for product screenshots, capture them from the deployed blueprint rather than replacing the checked-in SVG.

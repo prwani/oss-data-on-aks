@@ -1,0 +1,3 @@
+New guide: run Trino on AKS with an AKS AVM baseline, a dedicated `trino` node pool, private coordinator access, and a runnable `tpch` catalog for smoke testing.
+
+The repo package includes Terraform and Bicep wrappers, pinned Helm values for chart 1.42.1 / Trino 479, and operator guidance for both portal-first and CLI-first teams.

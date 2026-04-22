@@ -1,0 +1,17 @@
+title: "Running ClickHouse on AKS with an AKS AVM baseline"
+target_blog: "Microsoft TechCommunity Linux and Open Source Blog"
+author: "Prafulla Wani"
+status: "draft"
+workload: "ClickHouse"
+tags:
+  - AKS
+  - Azure
+  - ClickHouse
+  - Kubernetes
+  - Linux and Open Source
+summary: "A starter Azure-first blueprint for running ClickHouse on AKS with a dedicated node pool, Keeper quorum, private-by-default service exposure, and per-replica Premium SSD storage."
+canonical_repo_path: "blogs/clickhouse"
+hero_image: "blogs/clickhouse/assets/clickhouse-on-aks-architecture.svg"
+review_notes:
+  - "Confirm the final Bitnami ClickHouse chart version remains 9.4.7 and the appVersion remains 25.7.5 when the post is published."
+  - "If publication requires product screenshots in addition to the repo-owned SVG, capture them from a deployed cluster rather than substituting mock imagery."

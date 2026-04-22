@@ -1,0 +1,12 @@
+environment_name         = "dev"
+location                 = "eastus"
+resource_group_name      = "rg-trino-aks-dev"
+cluster_name             = "aks-trino-dev"
+system_pool_vm_size      = "Standard_D2s_v5"
+system_pool_node_count   = 1
+trino_node_pool_vm_size  = "Standard_D8ds_v5"
+trino_node_pool_node_count = 3
+
+tags = {
+  owner = "data-platform-team"
+}

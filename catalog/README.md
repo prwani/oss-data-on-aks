@@ -4,14 +4,16 @@ This catalog tracks the first wave of open-source data and analytics blueprints 
 
 | Workload | Category | Portal path | `az` CLI path | Terraform | Bicep | Blog package |
 | --- | --- | --- | --- | --- | --- | --- |
-| OpenSearch | Search and analytics | Drafted | Drafted | Expanded | Expanded | In progress |
-| Redpanda | Streaming | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
-| Apache Kafka | Streaming | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
-| Trino | Query engines | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
-| ClickHouse | OLAP databases | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
-| Apache Airflow | Orchestration | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
-| Apache Spark | Distributed processing | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
-| Apache Superset | BI and semantic access | Planned | Planned | Scaffolded | Scaffolded | Template-driven |
+| OpenSearch | Search and analytics | Expanded | Expanded | Expanded | Expanded | Expanded |
+| Redpanda | Streaming | Expanded | Expanded | Expanded | Expanded | Expanded |
+| Apache Kafka | Streaming | Expanded | Expanded | Expanded | Expanded | Expanded |
+| Trino | Query engines | Expanded | Expanded | Expanded | Expanded | Expanded |
+| ClickHouse | OLAP databases | Expanded | Expanded | Expanded | Expanded | Expanded |
+| Apache Airflow | Orchestration | Expanded | Expanded | Expanded | Expanded | Expanded |
+| Apache Spark | Distributed processing | Expanded | Expanded | Expanded | Expanded | Expanded |
+| Apache Superset | BI and semantic access | Expanded | Expanded | Expanded | Expanded | Expanded |
+
+Expanded means the workload now includes concrete workload docs, AKS AVM-aligned Terraform and Bicep wrappers, pinned Kubernetes assets, and a workload-specific TechCommunity blog package.
 
 ## Expected blueprint shape
 

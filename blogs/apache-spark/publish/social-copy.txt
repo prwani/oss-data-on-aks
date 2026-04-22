@@ -1,0 +1,3 @@
+New guide: run Apache Spark on AKS without pretending it is a long-running microservice.
+
+This draft walks through Spark 4.1.1 on AKS with the official Spark Kubernetes Operator, a dedicated `spark` node pool, concrete SparkApplication manifests, and AKS-first guidance for driver/executor lifecycle plus shuffle and spill.

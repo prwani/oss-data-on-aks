@@ -1,0 +1,2 @@
+file_name,alt_text,placement,notes
+trino-on-aks-architecture.svg,"Trino on AKS coordinator and worker architecture","hero","Original SVG showing the dedicated trino node pool, private service exposure, and tpch catalog"

@@ -1,0 +1,13 @@
+environment_name              = "dev"
+location                      = "eastus"
+resource_group_name           = "rg-redpanda-aks-dev"
+cluster_name                  = "aks-redpanda-dev"
+system_pool_vm_size           = "Standard_D4ds_v5"
+system_pool_node_count        = 1
+system_pool_availability_zones = []
+broker_pool_vm_size           = "Standard_D8ds_v5"
+broker_pool_node_count        = 3
+broker_pool_availability_zones = []
+tags = {
+  owner = "data-platform-team"
+}

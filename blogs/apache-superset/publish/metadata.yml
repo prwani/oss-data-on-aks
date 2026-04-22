@@ -1,0 +1,16 @@
+title: "Running Apache Superset on AKS with Celery workers, metadata state, and an internal-only UI"
+target_blog: "Microsoft TechCommunity Linux and Open Source Blog"
+author: "Prafulla Wani"
+status: "draft"
+workload: "Apache Superset"
+tags:
+  - AKS
+  - Azure
+  - Apache Superset
+  - Kubernetes
+  - Linux and Open Source
+summary: "A production-minded starter blueprint for Apache Superset 5.0.0 on AKS with the official Helm chart 0.15.4, a dedicated superset node pool, internal-only UI exposure, and concrete Terraform, Bicep, Helm, and operations assets."
+canonical_repo_path: "blogs/apache-superset"
+review_notes:
+  - "Validate the Superset 0.15.4 chart commands and dependency versions against the final release notes before publication."
+  - "Capture one internal UI or pod-topology screenshot if the post is published externally."

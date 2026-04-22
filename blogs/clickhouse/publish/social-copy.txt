@@ -1,0 +1,3 @@
+New guide: run ClickHouse on AKS with an AKS AVM baseline, a dedicated `clickhouse` node pool, Keeper quorum, and private-by-default service exposure.
+
+The repo package includes Terraform and Bicep wrappers, pinned Helm values for Bitnami chart 9.4.7 / ClickHouse 25.7.5, runtime secret handling with `existingSecret`, and operator guidance for both portal-first and CLI-first teams.

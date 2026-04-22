@@ -1,0 +1,241 @@
+executor: CeleryExecutor
+
+fernetKeySecretName: airflow-fernet-key
+apiSecretKeySecretName: airflow-api-secret
+jwtSecretName: airflow-jwt-secret
+webserverSecretKeySecretName: airflow-webserver-secret
+
+data:
+  metadataSecretName: airflow-metadata
+  resultBackendSecretName: airflow-result-backend
+  brokerUrlSecretName: airflow-broker-url
+
+createUserJob:
+  enabled: false
+  nodeSelector:
+    agentpool: airflow
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: airflow
+      effect: NoSchedule
+
+migrateDatabaseJob:
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  nodeSelector:
+    agentpool: airflow
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: airflow
+      effect: NoSchedule
+
+apiServer:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  service:
+    type: ClusterIP
+    annotations: {}
+  nodeSelector:
+    agentpool: airflow
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: airflow
+      effect: NoSchedule
+  podDisruptionBudget:
+    enabled: true
+    config:
+      minAvailable: 1
+
+scheduler:
+  replicas: 2
+  safeToEvict: false
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+  nodeSelector:
+    agentpool: airflow
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: airflow
+      effect: NoSchedule
+  podDisruptionBudget:
+    enabled: true
+    config:
+      minAvailable: 1
+
+webserver:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  nodeSelector:
+    agentpool: airflow
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: airflow
+      effect: NoSchedule
+  podDisruptionBudget:
+    enabled: true
+    config:
+      minAvailable: 1
+
+triggerer:
+  enabled: true
+  replicas: 2
+  safeToEvict: false
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  nodeSelector:
+    agentpool: airflow
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: airflow
+      effect: NoSchedule
+  podDisruptionBudget:
+    enabled: true
+    config:
+      minAvailable: 1
+
+workers:
+  celery:
+    replicas: 3
+    safeToEvict: false
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        cpu: "1000m"
+        memory: "2Gi"
+      limits:
+        cpu: "2000m"
+        memory: "4Gi"
+    nodeSelector:
+      agentpool: airflow
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: airflow
+        effect: NoSchedule
+    podDisruptionBudget:
+      enabled: true
+      config:
+        maxUnavailable: 1
+
+statsd:
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+  nodeSelector:
+    agentpool: airflow
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: airflow
+      effect: NoSchedule
+
+redis:
+  enabled: true
+  passwordSecretName: airflow-redis-password
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClassName: managed-csi-premium
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+  nodeSelector:
+    agentpool: airflow
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: airflow
+      effect: NoSchedule
+
+postgresql:
+  enabled: true
+  auth:
+    enablePostgresUser: false
+    username: airflow
+    database: airflow
+    existingSecret: airflow-postgresql-auth
+    secretKeys:
+      userPasswordKey: password
+  primary:
+    persistence:
+      enabled: true
+      size: 16Gi
+      storageClass: managed-csi-premium
+    nodeSelector:
+      agentpool: airflow
+    tolerations:
+      - key: dedicated
+        operator: Equal
+        value: airflow
+        effect: NoSchedule
+
+dags:
+  persistence:
+    enabled: false
+  gitSync:
+    enabled: true
+    repo: https://github.com/apache/airflow.git
+    branch: main
+    ref: main
+    rev: HEAD
+    depth: 1
+    subPath: airflow/example_dags
+    period: 30s
+
+logs:
+  persistence:
+    enabled: false
+
+config:
+  core:
+    load_examples: "False"
+  celery:
+    worker_concurrency: 4

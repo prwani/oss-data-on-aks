@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">ClickHouse on AKS architecture</title>
+  <desc id="desc">AKS cluster with a system pool, a dedicated clickhouse user pool, two ClickHouse shards with two replicas each, a three-node Keeper quorum, private service access, and PVC-backed Premium SSD storage.</desc>
+  <style>
+    .bg { fill: #f9fbff; }
+    .cluster { fill: #ffffff; stroke: #0f6cbd; stroke-width: 3; }
+    .pool { fill: #eef6ff; stroke: #0f6cbd; stroke-width: 2; }
+    .box { fill: #ffffff; stroke: #1f1f1f; stroke-width: 1.5; rx: 16; ry: 16; }
+    .keeper { fill: #fff4ce; stroke: #c19c00; stroke-width: 2; }
+    .service { fill: #e6f4ea; stroke: #107c10; stroke-width: 2; }
+    .edge { stroke: #605e5c; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+    .title { font: 700 32px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+    .subtitle { font: 600 20px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+    .label { font: 600 16px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+    .small { font: 14px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#605e5c" />
+    </marker>
+  </defs>
+  <rect class="bg" width="1200" height="760" rx="28" ry="28"/>
+  <text class="title" x="48" y="56">ClickHouse on AKS starter blueprint</text>
+  <text class="small" x="48" y="84">Pinned to Bitnami chart 9.4.7 / ClickHouse 25.7.5 with private access and per-replica PVCs.</text>
+
+  <rect class="cluster" x="40" y="112" width="1120" height="608" rx="28" ry="28"/>
+  <text class="subtitle" x="72" y="152">AKS cluster</text>
+
+  <rect class="pool" x="72" y="188" width="240" height="160" rx="22" ry="22"/>
+  <text class="subtitle" x="96" y="224">systempool</text>
+  <rect class="box" x="96" y="248" width="192" height="74" rx="16" ry="16"/>
+  <text class="label" x="118" y="282">AKS add-ons</text>
+  <text class="small" x="118" y="304">CoreDNS, metrics, control-plane agents</text>
+
+  <rect class="pool" x="336" y="188" width="792" height="486" rx="22" ry="22"/>
+  <text class="subtitle" x="360" y="224">Dedicated user pool: clickhouse (3 nodes)</text>
+  <text class="small" x="360" y="250">Taint: dedicated=clickhouse:NoSchedule</text>
+
+  <rect class="keeper" x="376" y="280" width="712" height="104" rx="18" ry="18"/>
+  <text class="label" x="404" y="316">StatefulSet: clickhouse-keeper</text>
+  <text class="small" x="404" y="340">3 replicas for coordination quorum</text>
+  <text class="small" x="404" y="362">Each Keeper pod gets its own 16 GiB Premium SSD PVC</text>
+
+  <rect class="box" x="376" y="420" width="330" height="176" rx="16" ry="16"/>
+  <text class="label" x="400" y="454">Shard 0</text>
+  <text class="small" x="400" y="480">Replicas: clickhouse-shard0-0 and clickhouse-shard0-1</text>
+  <text class="small" x="400" y="506">Replicated MergeTree parts on local disks</text>
+  <text class="small" x="400" y="532">128 GiB Premium SSD PVC per replica</text>
+  <text class="small" x="400" y="558">Background merges and replica fetches</text>
+
+  <rect class="box" x="758" y="420" width="330" height="176" rx="16" ry="16"/>
+  <text class="label" x="782" y="454">Shard 1</text>
+  <text class="small" x="782" y="480">Replicas: clickhouse-shard1-0 and clickhouse-shard1-1</text>
+  <text class="small" x="782" y="506">Replicated MergeTree parts on local disks</text>
+  <text class="small" x="782" y="532">128 GiB Premium SSD PVC per replica</text>
+  <text class="small" x="782" y="558">Background merges and replica fetches</text>
+
+  <rect class="service" x="72" y="420" width="240" height="150" rx="22" ry="22"/>
+  <text class="subtitle" x="96" y="458">Private service</text>
+  <text class="label" x="96" y="494">clickhouse</text>
+  <text class="small" x="96" y="520">ClusterIP on ports 8123 and 9000</text>
+  <text class="small" x="96" y="544">Port-forward or internal LB override</text>
+
+  <path class="edge" d="M 312 494 L 376 494"/>
+  <path class="edge" d="M 312 524 L 376 524"/>
+  <path class="edge" d="M 540 384 L 540 420"/>
+  <path class="edge" d="M 924 384 L 924 420"/>
+
+  <text class="small" x="376" y="636">Each ClickHouse replica keeps its own disk. Keeper stores replication metadata, not table data.</text>
+</svg>

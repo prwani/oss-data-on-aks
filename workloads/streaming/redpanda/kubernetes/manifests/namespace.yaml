@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redpanda
+  labels:
+    app.kubernetes.io/part-of: redpanda-on-aks
+    # The checked-in Redpanda values enable tune_aio_events, which creates a
+    # privileged tuning container to raise fs.aio-max-nr on AKS nodes.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
