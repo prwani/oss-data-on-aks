@@ -4,9 +4,7 @@ metadata:
   name: opensearch
   labels:
     app.kubernetes.io/part-of: opensearch-on-aks
-    # OpenSearch's Helm chart optionally runs a privileged sysctl init container.
-    # We disable that init container in the blueprint values, so `baseline`
-    # enforcement is safe. If you re-enable sysctlInit, relax this to
-    # `privileged` or remove the label.
-    pod-security.kubernetes.io/enforce: baseline
-    pod-security.kubernetes.io/warn: baseline
+    # The checked-in Helm values enable the chart's privileged sysctl init
+    # container so vm.max_map_count is set consistently across AKS node images.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged

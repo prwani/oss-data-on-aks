@@ -42,11 +42,9 @@ tolerations:
     effect: "NoSchedule"
 
 sysctlInit:
-  # AKS nodes on recent images already set vm.max_map_count >= 262144.
-  # We keep the privileged init container off so the namespace can enforce
-  # the `baseline` Pod Security standard. Enable this and relax the namespace
-  # PSA label only if your AKS image does not satisfy the requirement.
-  enabled: false
+  # Enable the chart's privileged init container so vm.max_map_count is
+  # configured consistently across AKS node images.
+  enabled: true
 
 service:
   type: ClusterIP

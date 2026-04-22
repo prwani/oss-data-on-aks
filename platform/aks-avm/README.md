@@ -11,9 +11,11 @@ All blueprints in this repository should use AKS Azure Verified Modules as the b
 
 - use the shared files here for cluster-level infrastructure
 - extend workload folders with their own storage, operator, ingress, and policy needs
-- pin tested AVM versions before productionizing a workload
+- keep the shared wrappers pinned to tested AVM versions instead of floating or placeholder references
 
-## Notes for the initial scaffold
+## Current baseline shape
 
-The Terraform and Bicep files in this folder are intentionally starter files. They show the reference points and the minimum contract that workload folders should inherit, while leaving room to pin exact AVM versions and full parameter sets as each blueprint matures.
-
+- Terraform wrapper pins `Azure/avm-res-containerservice-managedcluster/azurerm` `0.5.3`
+- Bicep wrapper pins `br/public:avm/res/container-service/managed-cluster:0.13.0`
+- both wrappers accept a system pool definition plus any workload-specific user pools
+- both wrappers default to a small `systempool` and let workload folders add dedicated pools such as `osmgr` and `osdata`

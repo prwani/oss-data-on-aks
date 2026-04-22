@@ -68,6 +68,7 @@ Start with three logical pool types:
 - **osdata** for data and ingest nodes
 
 You can collapse these for short-lived labs, but the blueprint assumes dedicated pools so operational guidance stays production-minded from the start.
+The checked-in AKS wrappers provision `systempool`, `osmgr`, and `osdata`. Because the default Helm values run three manager replicas and three data replicas with hard pod anti-affinity, the dedicated `osmgr` and `osdata` pools need at least three schedulable nodes each, or equivalent autoscaler headroom during install.
 
 ### 2. Storage choices
 

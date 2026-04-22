@@ -10,12 +10,12 @@ output "cluster_name" {
 
 output "snapshot_storage_account_name" {
   description = "Storage account created for snapshot use, if enabled."
-  value       = try(azurerm_storage_account.snapshot[0].name, null)
+  value       = try(azapi_resource.snapshot_storage[0].name, null)
 }
 
 output "snapshot_container_name" {
   description = "Blob container created for snapshot use, if enabled."
-  value       = try(azurerm_storage_container.snapshot[0].name, null)
+  value       = try(azapi_resource.snapshot_container[0].name, null)
 }
 
 output "get_credentials_command" {

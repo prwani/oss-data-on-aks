@@ -1,5 +1,6 @@
 file_name,alt_text,placement,notes
-hero-image.png,Reference architecture for OpenSearch on AKS,hero,Add final diagram before publication
+opensearch-on-aks-combined-architecture.svg,Combined OpenSearch logical and AKS deployment architecture,hero,Custom SVG that explains StatefulSets, dedicated node pools, and per-pod PVC-backed disks
+opensearch-cluster.png,Official OpenSearch logical cluster architecture,body,Source: docs.opensearch.org latest cluster architecture diagram
+opensearch-cluster-replicas.png,Official OpenSearch shard and replica placement diagram,body,Source: docs.opensearch.org latest shard and replica diagram
 opensearch-cluster-view.png,OpenSearch cluster health view after deployment,body,Replace with validated screenshot
 dashboards-access.png,Internal access path for OpenSearch Dashboards on AKS,body,Replace with validated screenshot
-

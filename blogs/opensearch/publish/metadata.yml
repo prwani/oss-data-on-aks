@@ -14,8 +14,7 @@ tags:
   - Linux and Open Source
 summary: "A two-part Azure-first package for deploying and operating OpenSearch on AKS with shared AKS AVM infrastructure, dual IaC paths, and operator guidance."
 canonical_repo_path: "blogs/opensearch"
-hero_image: "blogs/opensearch/assets/hero-image.png"
+hero_image: "blogs/opensearch/assets/opensearch-on-aks-combined-architecture.svg"
 review_notes:
-  - "Replace placeholders with validated screenshots and diagram assets."
+  - "Validate final rendering of the custom AKS SVG and the two official OpenSearch diagrams in the publication system."
   - "Confirm the final AVM module versions used in sample code."
-

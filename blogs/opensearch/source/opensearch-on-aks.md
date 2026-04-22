@@ -20,6 +20,38 @@ OpenSearch is a strong fit when teams want a Kubernetes-native search and analyt
 
 The challenge is that OpenSearch is not just another stateless app. It has persistent shard storage, JVM heap requirements, disk pressure behavior, cluster elections, recovery flows, and backup expectations. So a reusable AKS pattern needs to cover more than `helm install`.
 
+## Why this is not a typical AKS microservice
+
+This is the part I want readers to notice early: **OpenSearch on AKS is not a normal stateless microservice deployment**.
+
+Typical AKS microservices often look like this:
+
+- a `Deployment`
+- replicas that can restart almost anywhere
+- little or no persistent per-pod storage
+- durable state kept in some other service
+
+OpenSearch is different:
+
+- manager and data tiers run as **StatefulSets**
+- each **manager pod needs its own disk** for cluster metadata durability
+- each **data pod needs its own disk** for shard storage, relocation, and recovery
+- a missing or unbound **PersistentVolumeClaim (PVC)** will block pod startup
+
+That is why OpenSearch validation on AKS must include `kubectl get pvc`, not just `kubectl get pods`.
+
+## OpenSearch architecture before the AKS mapping
+
+These official diagrams are helpful because they explain the underlying OpenSearch model before I add the Azure and AKS-specific choices.
+
+![Official OpenSearch cluster architecture](../assets/opensearch-cluster.png)
+
+*Source: [OpenSearch documentation cluster architecture diagram](https://docs.opensearch.org/latest/images/cluster.png), OpenSearch Contributors, Apache License 2.0.*
+
+![Official OpenSearch shard and replica architecture](../assets/opensearch-cluster-replicas.png)
+
+*Source: [OpenSearch documentation shard and replica diagram](https://docs.opensearch.org/latest/images/intro/cluster-replicas.png), OpenSearch Contributors, Apache License 2.0.*
+
 ## What this repo now provides
 
 The OpenSearch workload in the repo is organized around five practical building blocks:
@@ -35,6 +67,10 @@ That split is intentional. It keeps AKS platform concerns reusable while still l
 ## The target architecture
 
 For the first opinionated OpenSearch blueprint in this repo, I am using this starting pattern:
+
+![Combined OpenSearch-on-AKS architecture](../assets/opensearch-on-aks-combined-architecture.svg)
+
+*Custom AKS mapping for this repository. It combines OpenSearch cluster roles, shard/replica behavior, dedicated AKS node pools, StatefulSets, and per-pod PVC-backed Azure Disks.*
 
 | Layer | Recommendation | Why |
 | --- | --- | --- |
@@ -62,7 +98,7 @@ Before you start, make sure you have:
 - Azure CLI installed and logged in
 - `kubectl` installed
 - Helm 3.x installed
-- Terraform 1.6+ if you want the Terraform path
+- Terraform 1.11+ if you want the Terraform path
 - a globally unique storage account name if you want to create snapshot storage from the example wrappers
 
 ## Step 1: Deploy or align the AKS baseline
@@ -102,6 +138,7 @@ terraform apply
 ```
 
 The current wrappers focus on the AKS baseline and a starter snapshot storage account. They are designed to be a strong repo contract, not a claim that every day-2 detail is already automated.
+The checked-in wrappers provision `systempool`, `osmgr`, and `osdata`. The dedicated `osmgr` and `osdata` pools start with three nodes each so the default manager and data replicas can satisfy their hard anti-affinity rules.
 
 ## Step 2: Connect to AKS and create the namespace
 
@@ -112,6 +149,7 @@ az aks get-credentials \
   --resource-group "$RESOURCE_GROUP" \
   --name "$CLUSTER_NAME"
 
+kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/namespace.yaml
 ```
 
@@ -136,10 +174,13 @@ In a real environment, replace the placeholder values first and then move toward
 This blueprint uses a separate release for manager nodes. The surrounding docs use cluster-manager language, but the current Helm chart still uses `masterService` and `master` role naming in its values.
 
 ```bash
+export OPENSEARCH_HELM_VERSION=3.6.0
+
 helm repo add opensearch https://opensearch-project.github.io/helm-charts/
 helm repo update
 
 helm upgrade --install opensearch-manager opensearch/opensearch \
+  --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/manager-values.yaml
 ```
@@ -157,6 +198,7 @@ The data release joins the same cluster and points back to the manager service f
 
 ```bash
 helm upgrade --install opensearch-data opensearch/opensearch \
+  --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/data-values.yaml
 ```
@@ -167,6 +209,7 @@ The data values raise storage and JVM sizing relative to the manager tier and ar
 
 ```bash
 helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
+  --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/dashboards-values.yaml
 ```
@@ -188,6 +231,8 @@ kubectl get pvc -n opensearch
 kubectl get svc -n opensearch
 kubectl describe svc opensearch-dashboards -n opensearch
 ```
+
+For this workload, the PVC check is not just nice to have. The manager and data pods each depend on their own Azure Disk-backed PVC, so `kubectl get pvc` needs to show every claim as `Bound` before you can trust the rollout.
 
 For API validation without public exposure, use port-forward:
 

@@ -1,9 +1,3 @@
-variable "aks_avm_module_version" {
-  description = "Version of the shared AKS AVM wrapper to use."
-  type        = string
-  default     = "0.1.0"
-}
-
 variable "environment_name" {
   description = "Environment suffix such as dev, test, or prod."
   type        = string

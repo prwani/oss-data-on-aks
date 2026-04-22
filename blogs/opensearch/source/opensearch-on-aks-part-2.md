@@ -29,6 +29,22 @@ OpenSearch cares about:
 
 On AKS, those concerns translate into concrete platform decisions.
 
+## Architecture recap: why storage and PVCs matter
+
+Before talking about node pools and operational posture, it helps to make the AKS mapping explicit.
+
+![Combined OpenSearch-on-AKS architecture](../assets/opensearch-on-aks-combined-architecture.svg)
+
+*Custom AKS mapping for this repository. It combines OpenSearch cluster roles, shard/replica behavior, dedicated AKS node pools, StatefulSets, and per-pod PVC-backed Azure Disks.*
+
+This is also the key difference from a normal stateless microservice:
+
+- manager pods each need their **own PVC-backed disk** for cluster metadata durability
+- data pods each need their **own PVC-backed disk** for primary and replica shard storage
+- a pod can stay `Pending` simply because its **PersistentVolumeClaim** is not yet `Bound`
+
+That is why storage classes, per-pod Azure Disks, and PVC validation show up so prominently in the AKS guidance for OpenSearch.
+
 ## 1. Split manager and data roles early
 
 Even if you begin with a small cluster, it helps to separate cluster-manager and data responsibilities in the blueprint.

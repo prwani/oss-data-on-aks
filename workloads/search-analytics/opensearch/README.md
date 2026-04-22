@@ -10,6 +10,17 @@ This blueprint is the first expanded workload in the repository and the referenc
 - **Stateful workload guidance** for storage, node pools, private access, and operations
 - **TechCommunity-ready blog content** aligned to the implementation assets in [`blogs/opensearch`](../../../blogs/opensearch)
 
+## Why this is not a typical AKS microservice
+
+Most AKS application workloads are deployed as stateless `Deployment`s and depend on an external database for durability. OpenSearch is different:
+
+- manager and data tiers run as **StatefulSets**, not generic stateless deployments
+- each **manager pod needs its own disk** for cluster metadata durability
+- each **data pod needs its own disk** for shard storage, relocation, and recovery
+- `kubectl get pvc` is a first-class deployment check, not an optional extra, because a pod cannot start until its **PersistentVolumeClaim (PVC)** is `Bound`
+
+Those storage and topology requirements are why this blueprint emphasizes dedicated node pools, per-pod Azure Disks, private API exposure, and snapshot planning from the start.
+
 ## Recommended starting pattern
 
 | Layer | Recommendation | Why |
@@ -21,6 +32,22 @@ This blueprint is the first expanded workload in the repository and the referenc
 | Dashboards | Internal Azure load balancer | Gives operators access without exposing the API publicly |
 | Persistent storage | `managed-csi-premium` | Sensible default for durable SSD-backed volumes |
 | Snapshots | Azure Blob Storage | External recovery point beyond PVCs |
+
+## Architecture visuals
+
+The first two figures below are official OpenSearch diagrams that explain the logical cluster model and shard/replica placement. The third figure maps those ideas onto this repository's AKS deployment pattern.
+
+![Official OpenSearch cluster architecture](../../../blogs/opensearch/assets/opensearch-cluster.png)
+
+*Source: [OpenSearch documentation cluster architecture diagram](https://docs.opensearch.org/latest/images/cluster.png), OpenSearch Contributors, Apache License 2.0.*
+
+![Official OpenSearch shard and replica architecture](../../../blogs/opensearch/assets/opensearch-cluster-replicas.png)
+
+*Source: [OpenSearch documentation shard and replica diagram](https://docs.opensearch.org/latest/images/intro/cluster-replicas.png), OpenSearch Contributors, Apache License 2.0.*
+
+![Combined OpenSearch-on-AKS architecture](../../../blogs/opensearch/assets/opensearch-on-aks-combined-architecture.svg)
+
+*Custom AKS mapping for this repository. It combines OpenSearch cluster roles, shard/replica behavior, dedicated AKS node pools, StatefulSets, and per-pod PVC-backed Azure Disks.*
 
 ## Blueprint contents
 

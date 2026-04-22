@@ -1,4 +1,3 @@
-aks_avm_module_version      = "0.1.0"
 environment_name            = "dev"
 location                    = "eastus"
 resource_group_name         = "rg-opensearch-aks-dev"

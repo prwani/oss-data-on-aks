@@ -7,7 +7,7 @@ Use this guide for the automation-first path. It assumes you want the Azure reso
 - Azure CLI
 - `kubectl`
 - Helm 3.x
-- Terraform 1.6+ if you want the Terraform path
+- Terraform 1.11+ if you want the Terraform path
 - an Azure subscription with quota for AKS and managed disks
 
 ## Environment variables
@@ -17,6 +17,7 @@ export LOCATION=eastus
 export RESOURCE_GROUP=rg-opensearch-aks-dev
 export CLUSTER_NAME=aks-opensearch-dev
 export SNAPSHOT_STORAGE_ACCOUNT=opssnapdev001
+export OPENSEARCH_HELM_VERSION=3.6.0
 ```
 
 ## Option A: Bicep wrapper
@@ -38,6 +39,7 @@ az deployment group create \
 ```
 
 This path relies on the shared AVM wrapper for the AKS baseline and optionally creates an Azure Storage account and container for snapshot use.
+The checked-in wrappers provision `systempool`, `osmgr`, and `osdata`. The dedicated `osmgr` and `osdata` pools start with three nodes each so the default Helm anti-affinity rules can place all manager and data replicas.
 
 ## Option B: Terraform wrapper
 
@@ -60,15 +62,18 @@ az aks get-credentials \
   --name "$CLUSTER_NAME"
 ```
 
-## Prepare the namespace and secrets
+## Prepare the storage class, namespace, and secrets
 
 ```bash
+kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/namespace.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/opensearch-admin-credentials.example.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/opensearch-dashboards-auth.example.yaml
 ```
 
 Replace the example secret values before applying them in a real environment.
+The storage class manifest creates the `managed-csi-premium` class expected by the Helm values even when the AKS baseline only ships a `default` CSI class.
+The namespace manifest uses the `privileged` Pod Security profile because the checked-in Helm values enable the chart's sysctl init container to raise `vm.max_map_count` before the OpenSearch JVM starts.
 
 ## Install manager nodes
 
@@ -77,6 +82,7 @@ helm repo add opensearch https://opensearch-project.github.io/helm-charts/
 helm repo update
 
 helm upgrade --install opensearch-manager opensearch/opensearch \
+  --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/manager-values.yaml
 ```
@@ -85,6 +91,7 @@ helm upgrade --install opensearch-manager opensearch/opensearch \
 
 ```bash
 helm upgrade --install opensearch-data opensearch/opensearch \
+  --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/data-values.yaml
 ```
@@ -93,6 +100,7 @@ helm upgrade --install opensearch-data opensearch/opensearch \
 
 ```bash
 helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
+  --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/dashboards-values.yaml
 ```

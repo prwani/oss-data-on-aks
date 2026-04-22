@@ -46,8 +46,8 @@ Use the portal to mirror the AVM-oriented design choices:
 | Pool | Purpose | Notes |
 | --- | --- | --- |
 | system/app | cluster add-ons and optional Dashboards | keep OpenSearch data pods off this pool |
-| osmgr | cluster-manager pods | smaller, steady capacity |
-| osdata | data and ingest pods | larger disks and stronger throughput profile |
+| osmgr | cluster-manager pods | start with at least 3 nodes so the default manager replicas can satisfy hard anti-affinity |
+| osdata | data and ingest pods | start with at least 3 nodes so the default data replicas can satisfy hard anti-affinity |
 
 If you taint the dedicated pools, keep the taints aligned with the example tolerations in the Helm values.
 
@@ -61,17 +61,19 @@ az aks get-credentials \
   --name aks-opensearch-dev
 ```
 
-## Step 5: Create the namespace and secrets
+## Step 5: Create the storage class, namespace, and secrets
 
-Apply the namespace and then create real secrets from the example manifests:
+Apply the Premium storage class manifest, then the namespace, and then create real secrets from the example manifests:
 
 ```bash
+kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/namespace.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/opensearch-admin-credentials.example.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/opensearch-dashboards-auth.example.yaml
 ```
 
 Replace the placeholder values before applying the secrets in a real environment.
+The namespace manifest uses the `privileged` Pod Security profile because the checked-in Helm values enable the chart's sysctl init container to raise `vm.max_map_count` before the OpenSearch JVM starts.
 
 ## Step 6: Install OpenSearch and Dashboards
 
@@ -80,14 +82,17 @@ helm repo add opensearch https://opensearch-project.github.io/helm-charts/
 helm repo update
 
 helm upgrade --install opensearch-manager opensearch/opensearch \
+  --version 3.6.0 \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/manager-values.yaml
 
 helm upgrade --install opensearch-data opensearch/opensearch \
+  --version 3.6.0 \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/data-values.yaml
 
 helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
+  --version 3.6.0 \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/dashboards-values.yaml
 ```

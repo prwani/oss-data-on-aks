@@ -15,12 +15,53 @@ param snapshotStorageAccountName string = 'opssnapdev001'
 @description('Container name for OpenSearch snapshots.')
 param snapshotContainerName string = 'opensearch-snapshots'
 
+var primaryAgentPoolProfiles = [
+  {
+    name: 'systempool'
+    availabilityZones: []
+    count: 1
+    vmSize: 'Standard_D2s_v5'
+    mode: 'System'
+    osType: 'Linux'
+    type: 'VirtualMachineScaleSets'
+  }
+]
+
+var agentPools = [
+  {
+    name: 'osmgr'
+    availabilityZones: []
+    count: 3
+    vmSize: 'Standard_D4s_v5'
+    mode: 'User'
+    osType: 'Linux'
+    type: 'VirtualMachineScaleSets'
+    nodeTaints: [
+      'dedicated=opensearch-manager:NoSchedule'
+    ]
+  }
+  {
+    name: 'osdata'
+    availabilityZones: []
+    count: 3
+    vmSize: 'Standard_D4s_v5'
+    mode: 'User'
+    osType: 'Linux'
+    type: 'VirtualMachineScaleSets'
+    nodeTaints: [
+      'dedicated=opensearch-data:NoSchedule'
+    ]
+  }
+]
+
 module aksPlatform '../../../../../platform/aks-avm/bicep/main.bicep' = {
   name: 'opensearchPlatform'
   params: {
     clusterName: clusterName
     location: location
     dnsPrefix: '${clusterName}-dns'
+    primaryAgentPoolProfiles: primaryAgentPoolProfiles
+    agentPools: agentPools
   }
 }
 
