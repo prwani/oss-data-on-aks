@@ -49,13 +49,18 @@ Use the portal to mirror the AVM-oriented design choices:
 | `systempool` | AKS add-ons, cert-manager, Helm jobs | `1 x Standard_D4ds_v5` |
 | `rpbroker` | Redpanda brokers only | `3 x Standard_D8ds_v5` |
 
+For the `rpbroker` pool, configure:
+
+| Setting | Value |
+| --- | --- |
+| Taint | `dedicated=redpanda-broker:NoSchedule` |
+| Enable autoscaling | `Yes` |
+| Minimum node count | `3` |
+| Maximum node count | `6` |
+
 Use an x86_64 VM family that exposes **SSE4.2** on the broker pool. The `Standard_D8ds_v5` default in the repo is a concrete starter choice. If you change the pool name or taint, update `kubernetes/helm/redpanda-values.yaml` so the node selector and toleration stay aligned.
 
-For the `rpbroker` pool, add this taint:
-
-```text
-dedicated=redpanda-broker:NoSchedule
-```
+The portal path enables the AKS cluster autoscaler during pool creation. The `az` CLI path enables it as a post-deployment step. Both produce the same end state. The cluster autoscaler does **not** auto-scale the Redpanda StatefulSet — it only provisions nodes when you manually add brokers.
 
 If the region supports availability zones and your deployment target needs stronger fault isolation, spread the `rpbroker` nodes across zones and revisit `rackAwareness.enabled` later.
 

@@ -114,6 +114,24 @@ The wrappers do not hardwire zones so the blueprint stays portable across region
 
 The checked-in values keep `storage.tiered` off. When you enable tiered storage on Azure, use Azure Blob with **managed identity-based access** and the minimum required RBAC. Do not fall back to storage account shared keys.
 
+### 8. Scaling model — why Redpanda does not auto-scale like Flink
+
+Redpanda is a stateful broker cluster where each broker owns durable PVCs with log segments. This makes automatic horizontal scaling fundamentally different from stateless compute engines:
+
+- **adding a broker** triggers partition rebalancing — data physically moves between brokers, consuming network and disk I/O
+- **removing a broker** requires decommissioning — all partitions must migrate off before the broker can be safely removed
+- **broker count must stay ≥ the highest topic replication factor** — scaling below this causes data loss
+- the cluster autoscaler can provision and drain **nodes**, but it does not change the **StatefulSet replica count**
+
+For these reasons, this blueprint uses a **capacity-monitoring + deliberate scaling** approach instead of automatic horizontal autoscaling:
+
+1. **AKS cluster autoscaler** on the `rpbroker` pool (min 3, max 6 as a starter ceiling) backs manual StatefulSet changes with automatic node provisioning
+2. **PVC expansion** is the preferred first response to disk pressure (no rebalancing needed)
+3. **Broker scale-out** is a deliberate operation triggered by monitoring thresholds and validated with `rpk` health checks
+4. **Broker scale-in** follows a decommission protocol to ensure zero data loss
+
+See `docs/operations.md` for monitoring thresholds, scaling procedures, and decommission runbooks.
+
 ## Capacity planning starter values
 
 | Component | Starter value | Why |
@@ -125,5 +143,6 @@ The checked-in values keep `storage.tiered` off. When you enable tiered storage 
 | Memory per broker | `12 GiB` | Leaves room for Redpanda and supporting processes |
 | PVC per broker | `256 GiB` | Starter capacity with Premium SSD-backed storage |
 | Service exposure | Internal only | Safer default than public listeners |
+| AKS cluster autoscaler | min 3 / max 6 nodes (post-deployment) | Starter ceiling for node-level elasticity; does not auto-scale the StatefulSet |
 
 These are starter values, not production sizing guidance. Tune them against ingress rate, partition count, retention, compaction, and recovery targets.

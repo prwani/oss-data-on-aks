@@ -119,6 +119,24 @@ curl -sk https://127.0.0.1:9644/v1/status/ready
 curl -sk https://127.0.0.1:9644/v1/cluster/health_overview
 ```
 
+## Enable AKS cluster autoscaler (recommended)
+
+After validating the deployment, enable the AKS cluster autoscaler on the `rpbroker` pool so that when you manually scale the StatefulSet, nodes are provisioned automatically:
+
+```bash
+az aks nodepool update \
+  --resource-group "$RESOURCE_GROUP" \
+  --cluster-name "$CLUSTER_NAME" \
+  --name rpbroker \
+  --enable-cluster-autoscaler \
+  --min-count 3 \
+  --max-count 6
+```
+
+The cluster autoscaler does **not** automatically scale the Redpanda StatefulSet. It only ensures nodes exist when brokers are added or drained. The `3–6` range is a starter ceiling — adjust based on quota and expected throughput.
+
+See `docs/operations.md` for broker scaling procedures, PVC expansion, and decommission runbooks.
+
 ## Tear down the environment
 
 For the Bicep path, deleting the resource group removes the full AKS environment:

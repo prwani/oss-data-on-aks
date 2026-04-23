@@ -34,6 +34,7 @@ Those storage, CPU, and networking constraints are why this blueprint emphasizes
 | TLS | cert-manager backed and enabled by default | Encrypts internal traffic without shipping repo secrets |
 | Authentication | SASL left off in starter values | Keeps the repo secret-free; enable before production |
 | Persistent storage | `managed-csi-premium`, 256 GiB per broker | Durable SSD-backed PVCs with expansion support |
+| Scaling model | AKS cluster autoscaler + deliberate broker scaling | Stateful brokers do not auto-scale; PVC expansion is preferred before adding brokers |
 | Tiered storage | Disabled in checked-in values | Turn on later with Azure Blob + managed identity, never shared keys |
 
 ## Blueprint contents
