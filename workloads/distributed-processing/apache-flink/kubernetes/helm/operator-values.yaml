@@ -1,0 +1,36 @@
+watchNamespaces:
+  - flink
+
+operatorPod:
+  nodeSelector:
+    agentpool: systempool
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+      ephemeral-storage: 1Gi
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+      ephemeral-storage: 2Gi
+
+jobServiceAccount:
+  create: false
+
+webhook:
+  create: false
+
+rbac:
+  jobRole:
+    create: false
+  jobRoleBinding:
+    create: false
+
+defaultConfiguration:
+  create: true
+  append: true
+  flink-conf.yaml: |+
+    kubernetes.operator.metrics.reporter.slf4j.factory.class: org.apache.flink.metrics.slf4j.Slf4jReporterFactory
+    kubernetes.operator.metrics.reporter.slf4j.interval: 5 MINUTES
+    kubernetes.operator.reconcile.interval: 30 s
+    job.autoscaler.enabled: true

@@ -1,0 +1,65 @@
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: flink-word-count
+  namespace: flink
+  labels:
+    app.kubernetes.io/name: apache-flink
+    app.kubernetes.io/component: sample
+spec:
+  image: flink:1.20.1
+  flinkVersion: v1_20
+  serviceAccount: flink
+  flinkConfiguration:
+    taskmanager.numberOfTaskSlots: "2"
+    state.backend.type: hashmap
+    state.checkpoints.dir: file:///flink-data/checkpoints
+    state.savepoints.dir: file:///flink-data/savepoints
+    high-availability.type: kubernetes
+    high-availability.storageDir: file:///flink-data/ha
+    execution.checkpointing.interval: "60000"
+    execution.checkpointing.min-pause: "30000"
+    web.cancel.enable: "true"
+    job.autoscaler.enabled: "true"
+    job.autoscaler.stabilization.interval: "5m"
+    job.autoscaler.metrics.window: "10m"
+    job.autoscaler.target.utilization: "0.7"
+    job.autoscaler.target.utilization.boundary: "0.1"
+    job.autoscaler.scale-down.max-factor: "0.6"
+    job.autoscaler.scale-up.max-factor: "100000"
+  jobManager:
+    resource:
+      memory: "2048m"
+      cpu: 1
+    replicas: 1
+  taskManager:
+    resource:
+      memory: "4096m"
+      cpu: 2
+    replicas: 2
+  podTemplate:
+    spec:
+      nodeSelector:
+        agentpool: flink
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: flink
+          effect: NoSchedule
+      containers:
+        - name: flink-main-container
+          volumeMounts:
+            - name: flink-data
+              mountPath: /flink-data
+      volumes:
+        - name: flink-data
+          emptyDir:
+            sizeLimit: 10Gi
+  job:
+    jarURI: local:///opt/flink/examples/streaming/WordCount.jar
+    parallelism: 4
+    upgradeMode: stateless
+    # The bundled WordCount reads from a bounded in-memory source and finishes
+    # quickly. It validates operator health and pod placement, not long-running
+    # autoscaler behavior. Replace with an unbounded source connector for
+    # production autoscaling validation.

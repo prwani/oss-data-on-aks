@@ -26,7 +26,7 @@ This repository is designed for:
 | Query engines | Trino |
 | OLAP databases | ClickHouse |
 | Orchestration | Apache Airflow |
-| Distributed processing | Apache Spark |
+| Distributed processing | Apache Spark, Apache Flink |
 | BI and semantic access | Apache Superset |
 
 See [`catalog/README.md`](./catalog/README.md) for the current blueprint matrix.

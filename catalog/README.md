@@ -11,6 +11,7 @@ This catalog tracks the first wave of open-source data and analytics blueprints 
 | ClickHouse | OLAP databases | Expanded | Expanded | Expanded | Expanded | Expanded |
 | Apache Airflow | Orchestration | Expanded | Expanded | Expanded | Expanded | Expanded |
 | Apache Spark | Distributed processing | Expanded | Expanded | Expanded | Expanded | Expanded |
+| Apache Flink | Distributed processing | Expanded | Expanded | Expanded | Expanded | Planned |
 | Apache Superset | BI and semantic access | Expanded | Expanded | Expanded | Expanded | Expanded |
 
 Expanded means the workload now includes concrete workload docs, AKS AVM-aligned Terraform and Bicep wrappers, pinned Kubernetes assets, and a workload-specific TechCommunity blog package.
