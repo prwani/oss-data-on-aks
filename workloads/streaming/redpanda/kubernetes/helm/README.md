@@ -26,10 +26,20 @@ helm upgrade --install redpanda redpanda/redpanda \
   --values workloads/streaming/redpanda/kubernetes/helm/redpanda-values.yaml
 ```
 
+## Uninstall sequence
+
+```bash
+helm uninstall redpanda -n redpanda
+kubectl delete pvc --all -n redpanda --wait=false
+kubectl delete namespace redpanda --wait=true --timeout=600s
+```
+
 ## Notes
 
 - the values assume a dedicated `rpbroker` pool with three nodes and the taint `dedicated=redpanda-broker:NoSchedule`
 - chart `26.1.1` keeps TLS enabled by default and requires cert-manager CRDs before the Helm install
+- the storage class manifest matches the AKS built-in `managed-csi-premium` definition, so applying it stays compatible with new AKS clusters
+- uninstall the Helm release before deleting a Terraform-managed AKS cluster or broker pool so node draining does not fail on running brokers
 - `external.enabled: false` keeps admin, Kafka, Schema Registry, and HTTP listener exposure internal only
 - `tuning.tune_aio_events: true` means the `redpanda` namespace must allow a privileged container
 - SASL is disabled in the checked-in values so the repo does not ship bootstrap credentials; enable it later through an external secret workflow

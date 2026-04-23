@@ -90,7 +90,7 @@ kubectl apply -f workloads/streaming/redpanda/kubernetes/manifests/managed-csi-p
 kubectl apply -f workloads/streaming/redpanda/kubernetes/manifests/namespace.yaml
 ```
 
-The namespace uses the `privileged` Pod Security profile because the checked-in values keep `tuning.tune_aio_events` enabled, and that tuning path creates a privileged container.
+The storage class manifest matches the AKS built-in `managed-csi-premium` definition, so it is safe to apply even when AKS already created that class. The namespace uses the `privileged` Pod Security profile because the checked-in values keep `tuning.tune_aio_events` enabled, and that tuning path creates a privileged container.
 
 ## Step 7: Install Redpanda
 
@@ -128,6 +128,18 @@ For a quick admin API readiness check without enabling external listeners:
 kubectl port-forward svc/redpanda 9644:9644 -n redpanda
 curl -sk https://127.0.0.1:9644/v1/status/ready
 ```
+
+## Step 9: Tear down cleanly
+
+Before you delete the AKS cluster or the resource group, remove the Redpanda workload so the dedicated `rpbroker` nodes can drain cleanly:
+
+```bash
+helm uninstall redpanda -n redpanda
+kubectl delete pvc --all -n redpanda --wait=false
+kubectl delete namespace redpanda --wait=true --timeout=600s
+```
+
+After that, delete the AKS cluster or the full resource group from the portal.
 
 ## Portal-specific review points
 

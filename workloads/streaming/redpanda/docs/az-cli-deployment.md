@@ -86,7 +86,7 @@ kubectl apply -f workloads/streaming/redpanda/kubernetes/manifests/managed-csi-p
 kubectl apply -f workloads/streaming/redpanda/kubernetes/manifests/namespace.yaml
 ```
 
-The storage class creates the Premium SSD-backed class expected by the checked-in values. The namespace uses the `privileged` Pod Security profile because `tuning.tune_aio_events` is enabled in the starter values.
+The storage class manifest matches the AKS built-in `managed-csi-premium` definition and keeps the Premium SSD-backed class expected by the checked-in values. The namespace uses the `privileged` Pod Security profile because `tuning.tune_aio_events` is enabled in the starter values.
 
 ## Install Redpanda
 
@@ -119,9 +119,31 @@ curl -sk https://127.0.0.1:9644/v1/status/ready
 curl -sk https://127.0.0.1:9644/v1/cluster/health_overview
 ```
 
+## Tear down the environment
+
+For the Bicep path, deleting the resource group removes the full AKS environment:
+
+```bash
+az group delete \
+  --name "$RESOURCE_GROUP" \
+  --yes
+```
+
+For the Terraform path, uninstall the Redpanda workload before `terraform destroy` so AKS can drain the dedicated `rpbroker` pool cleanly:
+
+```bash
+helm uninstall redpanda -n redpanda
+kubectl delete pvc --all -n redpanda --wait=false
+kubectl delete namespace redpanda --wait=true --timeout=600s
+
+cd workloads/streaming/redpanda/infra/terraform
+terraform destroy -refresh=false
+```
+
 ## Implementation notes
 
 - keep the `rpbroker` pool at 3 or more nodes so each broker can land on its own node
 - treat `kubectl get pvc` as a first-class validation step; a broker is not healthy until its disk is attached and `Bound`
 - keep external listeners disabled until you have a stable advertised-address design for each broker
+- uninstall the Helm release before deleting the Terraform-managed cluster or node pool so broker eviction does not block teardown
 - keep tiered storage disabled until the Azure Blob identity and RBAC plan is ready, and use managed identity rather than shared keys when you do enable it
