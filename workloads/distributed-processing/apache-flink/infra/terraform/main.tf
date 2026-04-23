@@ -49,6 +49,7 @@ locals {
         "dedicated=flink:NoSchedule"
       ]
       os_disk_size_gb = var.flink_node_pool_os_disk_size_gb
+      os_disk_type    = "Managed"
       upgrade_settings = {
         max_surge = "10%"
       }

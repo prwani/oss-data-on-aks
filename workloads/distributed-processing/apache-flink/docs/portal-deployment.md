@@ -51,12 +51,15 @@ Mirror the AVM-oriented design decisions:
 | Node count | `3` |
 | VM size | `Standard_D8ds_v5` |
 | OS disk | `128 GiB` |
+| OS disk type | `Managed` |
 | Taint | `dedicated=flink:NoSchedule` |
 | Enable autoscaling | `Yes` |
 | Minimum node count | `3` |
 | Maximum node count | `10` |
 
 The portal path enables the AKS cluster autoscaler during pool creation. The `az` CLI path enables it as a post-deployment step. Both produce the same end state.
+
+Keep the `flink` pool on **Managed** OS disks. On `Standard_D8ds_v5`, letting AKS default to ephemeral OS disks can trigger overconstrained allocation failures in `swedencentral`.
 
 The checked-in FlinkDeployment manifest targets AKS's built-in `agentpool=flink` label. If you rename the pool, update the manifest selectors and tolerations before submitting jobs.
 
@@ -108,12 +111,27 @@ For a live Flink Web UI check while the job is still running (the sample is boun
 kubectl port-forward svc/flink-word-count-rest 8081:8081 -n flink
 ```
 
+Because the sample WordCount job is bounded, a fast transition from `RUNNING` to `FINISHED` is still a successful validation outcome.
+
+## Step 8: Tear down cleanly
+
+If you are deleting the whole environment after validation, remove the FlinkDeployment and operator first:
+
+```bash
+kubectl delete flinkdeployment flink-word-count -n flink --ignore-not-found=true
+helm uninstall flink-kubernetes-operator -n flink-operator
+kubectl delete namespace flink --wait=true --timeout=600s
+kubectl delete namespace flink-operator --wait=true --timeout=600s
+```
+
+After those namespaces are gone, delete the AKS cluster or the whole resource group from the portal.
+
 ## Portal-specific review points
 
 - confirm the `flink` node pool has the expected VM size, taint, and autoscaling settings
 - confirm the operator pod is healthy in `flink-operator`
 - confirm the JobManager and TaskManagers land only on `agentpool=flink` nodes
-- confirm the FlinkDeployment reaches `RUNNING` state without scheduling failures
+- confirm the FlinkDeployment reaches `RUNNING` and, for the bounded sample, may then transition cleanly to `FINISHED`
 - confirm there is no public service that treats Flink like a permanent web endpoint
 - confirm the autoscaler column in the portal shows the `flink` pool as autoscale-enabled with min 3, max 10
 

@@ -51,6 +51,7 @@ var agentPools = [
     mode: 'User'
     osType: 'Linux'
     osDiskSizeGB: flinkNodePoolOsDiskSizeGb
+    osDiskType: 'Managed'
     type: 'VirtualMachineScaleSets'
     nodeLabels: {
       workload: 'apache-flink'

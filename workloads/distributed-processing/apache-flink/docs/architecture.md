@@ -49,7 +49,7 @@ Flink on AKS is not a typical stateless microservice:
 | --- | --- | --- |
 | Cluster baseline | Use AKS AVM wrappers | Keeps Flink aligned with the rest of the repo |
 | Operator install | Official Flink Kubernetes Operator chart `1.10.0` in `flink-operator` | Keeps the control loop pinned and explicit |
-| Workload placement | Dedicated `flink` pool with 3 nodes | Isolates streaming and batch jobs from AKS system components |
+| Workload placement | Dedicated `flink` pool with 3 nodes on Managed OS disks | Isolates streaming and batch jobs from AKS system components and avoids ephemeral OS disk allocation failures on `Standard_D8ds_v5` |
 | Deployment model | `FlinkDeployment` in Application mode | Each job gets its own isolated Flink cluster with dedicated JobManager |
 | High availability | Kubernetes-native HA with ConfigMap leader election | Avoids ZooKeeper dependency; requires durable `high-availability.storageDir` for production |
 | Checkpoint storage | Local filesystem for starter (not durable); ADLS Gen2 for production | The starter validates operator health but does not survive pod or node loss |
@@ -81,6 +81,7 @@ The checked-in IaC provisions:
 - `systempool` for AKS add-ons and the lightweight Flink operator pod
 - one user pool named `flink`
 - three `Standard_D8ds_v5` nodes in that pool
+- Managed OS disks on that pool to avoid ephemeral OS disk allocation failures in constrained regions such as `swedencentral`
 - the taint `dedicated=flink:NoSchedule`
 
 The FlinkDeployment manifest pins JobManager and TaskManager pods to `agentpool=flink` and adds matching tolerations. This keeps Flink execution away from the system pool.
@@ -184,7 +185,7 @@ The checked-in Helm values pin the operator deployment to `agentpool=systempool`
 | Component | Starter shape | Purpose |
 | --- | --- | --- |
 | System pool | 1 x `Standard_D2s_v5` | AKS add-ons and the Flink operator |
-| Flink pool | 3 x `Standard_D8ds_v5` | JobManager and TaskManager scheduling |
+| Flink pool | 3 x `Standard_D8ds_v5` on Managed OS disks | JobManager and TaskManager scheduling |
 | Operator | 500m-1 CPU / 1 GiB memory | Lightweight control plane |
 | JobManager | 2 GiB memory / 1 CPU | Job coordination, checkpoint management, Web UI |
 | TaskManagers | 2-6 pods x 4 GiB memory / 2 CPUs / 2 task slots | Dataflow execution |

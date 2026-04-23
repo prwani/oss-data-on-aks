@@ -32,7 +32,7 @@ A normal stateless application can be summarized as "deployment + service + data
 | AKS baseline | Shared AVM wrapper | Keeps cluster creation consistent across workloads |
 | Operator control plane | Helm release `flink-kubernetes-operator` in namespace `flink-operator` | Separates the operator from job resources |
 | Workload namespace | Namespace `flink` with namespaced service account and RBAC | Makes job permissions explicit |
-| Compute placement | Dedicated `flink` pool with 3 `Standard_D8ds_v5` nodes | Gives JobManager and TaskManagers headroom for CPU, memory, and local state |
+| Compute placement | Dedicated `flink` pool with 3 `Standard_D8ds_v5` nodes on Managed OS disks | Gives JobManager and TaskManagers headroom for CPU, memory, local state, and more reliable regional allocation |
 | Deployment model | `FlinkDeployment` resources in Application mode | Each job gets its own isolated Flink cluster |
 | High availability | Kubernetes-native HA with leader election via ConfigMaps | Avoids ZooKeeper dependency |
 | Checkpoint storage | Local filesystem for starter; ADLS Gen2 with workload identity for production | Keeps the starter self-contained while documenting the production path |

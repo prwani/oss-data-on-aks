@@ -39,6 +39,8 @@ az deployment group create \
 
 This wrapper creates the shared AKS baseline plus the dedicated `flink` user pool defined for the workload.
 
+The checked-in wrappers pin the `flink` pool to **Managed** OS disks so `Standard_D8ds_v5` does not fall back to AKS's ephemeral OS disk default, which can trigger overconstrained allocation failures in `swedencentral`.
+
 ## Option B: Terraform wrapper
 
 ```bash
@@ -106,6 +108,8 @@ kubectl get pods -n "$FLINK_NAMESPACE" -o wide
 kubectl logs deploy/flink-word-count -n "$FLINK_NAMESPACE" -c flink-main-container
 ```
 
+Because the sample WordCount job is bounded, the FlinkDeployment may move from `RUNNING` to `FINISHED` quickly. Treat either state as a successful smoke test as long as the operator reconciles the resource, the JobManager becomes ready, and the TaskManagers land on the dedicated `flink` pool.
+
 For a live Flink Web UI check while the job is still running:
 
 ```bash
@@ -147,11 +151,33 @@ kubectl patch flinkdeployment flink-word-count -n "$FLINK_NAMESPACE" --type merg
 
 > **Note:** the checked-in starter uses `upgradeMode: stateless` with local `emptyDir` storage, so savepoints are not durable. Configure ADLS Gen2 and set `upgradeMode: savepoint` before relying on savepoint-based recovery.
 
+If you are tearing the whole environment down after validation, remove the operator and namespaces before deleting AKS:
+
+```bash
+helm uninstall "$FLINK_OPERATOR_RELEASE" -n "$FLINK_OPERATOR_NAMESPACE"
+kubectl delete namespace "$FLINK_NAMESPACE" --wait=true --timeout=600s
+kubectl delete namespace "$FLINK_OPERATOR_NAMESPACE" --wait=true --timeout=600s
+```
+
+For the Bicep path, delete the resource group after the namespaces are gone:
+
+```bash
+az group delete --name "$RESOURCE_GROUP" --yes --no-wait
+```
+
+For the Terraform path, run destroy with the same variable values you used for apply:
+
+```bash
+cd workloads/distributed-processing/apache-flink/infra/terraform
+terraform destroy -auto-approve
+```
+
 ## Implementation notes
 
 - the Flink operator chart is pinned to `1.10.0`
 - the sample job uses Flink `1.20.1` and the official image `flink:1.20.1`
 - JobManager and TaskManager pods target `agentpool=flink` and tolerate `dedicated=flink:NoSchedule`
+- the dedicated `flink` pool uses Managed OS disks to avoid regional allocation failures caused by AKS ephemeral OS disk defaults on `Standard_D8ds_v5`
 - the operator autoscaler is enabled in the FlinkDeployment resource with a 70% target utilization
 - checkpoint storage uses local filesystem for the starter; switch to ADLS Gen2 for production
 - if you extend the design to ADLS Gen2, use workload identity and managed identity auth only

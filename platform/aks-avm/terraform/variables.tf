@@ -40,6 +40,7 @@ variable "default_agent_pool" {
     node_labels        = optional(map(string))
     node_taints        = optional(list(string))
     os_disk_size_gb    = optional(number)
+    os_disk_type       = optional(string)
     upgrade_settings = optional(object({
       drain_timeout_in_minutes      = optional(number)
       node_soak_duration_in_minutes = optional(number)
@@ -70,6 +71,7 @@ variable "agent_pools" {
     node_labels        = optional(map(string))
     node_taints        = optional(list(string))
     os_disk_size_gb    = optional(number)
+    os_disk_type       = optional(string)
     upgrade_settings = optional(object({
       drain_timeout_in_minutes      = optional(number)
       node_soak_duration_in_minutes = optional(number)
