@@ -4,7 +4,7 @@ metadata:
   name: managed-csi-premium
 provisioner: disk.csi.azure.com
 parameters:
-  skuName: Premium_LRS
+  skuname: Premium_LRS
 reclaimPolicy: Delete
 allowVolumeExpansion: true
 volumeBindingMode: WaitForFirstConsumer

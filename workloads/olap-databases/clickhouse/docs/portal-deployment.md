@@ -9,7 +9,7 @@ You should end with:
 - an AKS cluster aligned to the shared AVM baseline
 - one dedicated `clickhouse` user pool with 3 nodes
 - a `clickhouse` namespace and a Premium SSD storage class
-- a Helm release named `clickhouse` using chart `9.4.7`
+- a Helm release named `clickhouse` using chart `9.4.4`
 - internal-only access to the ClickHouse service
 - a runtime-created admin password secret referenced by the chart
 
@@ -62,6 +62,8 @@ kubectl apply -f workloads/olap-databases/clickhouse/kubernetes/manifests/namesp
 kubectl create secret generic clickhouse-auth --namespace clickhouse --from-literal=admin-password="$(openssl rand -base64 32 | tr -d '\n')"
 ```
 
+The storage class manifest intentionally matches the AKS built-in `managed-csi-premium` class, so `kubectl apply` is safe on clusters where the class already exists.
+
 The chart values reference `clickhouse-auth` through `auth.existingSecret`, so no password is committed to source control.
 
 ## Step 6: Install ClickHouse
@@ -70,8 +72,10 @@ The chart values reference `clickhouse-auth` through `auth.existingSecret`, so n
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
-helm upgrade --install clickhouse bitnami/clickhouse --version 9.4.7 --namespace clickhouse --values workloads/olap-databases/clickhouse/kubernetes/helm/clickhouse-values.yaml
+helm upgrade --install clickhouse bitnami/clickhouse --version 9.4.4 --namespace clickhouse --values workloads/olap-databases/clickhouse/kubernetes/helm/clickhouse-values.yaml
 ```
+
+The chart still comes from the Bitnami Helm repo, but the checked-in values override the runtime images to `docker.io/bitnamilegacy/...` because the pinned versioned `docker.io/bitnami/...` ClickHouse tags are no longer published.
 
 ## Step 7: Validate the deployment
 
@@ -95,6 +99,18 @@ Check for:
 - every PVC in the namespace bound
 - no public service exposure for ClickHouse
 - shard and replica layout visible through `system.clusters`
+
+## Step 8: Tear down cleanly
+
+Uninstall the workload before deleting the AKS cluster or resource group so the dedicated `clickhouse` pool can drain cleanly:
+
+```bash
+helm uninstall clickhouse -n clickhouse
+kubectl delete pvc --all -n clickhouse --wait=false
+kubectl delete namespace clickhouse --wait=true --timeout=600s
+```
+
+After the namespace is gone, delete the AKS cluster or the whole resource group from the portal.
 
 ## Portal-specific review points
 

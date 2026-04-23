@@ -16,7 +16,7 @@ Use this guide for the automation-first path. It keeps the Azure resource shape,
 export LOCATION=eastus
 export RESOURCE_GROUP=rg-clickhouse-aks-dev
 export CLUSTER_NAME=aks-clickhouse-dev
-export CLICKHOUSE_HELM_VERSION=9.4.7
+export CLICKHOUSE_HELM_VERSION=9.4.4
 ```
 
 ## Option A: Bicep wrapper
@@ -55,6 +55,8 @@ kubectl apply -f workloads/olap-databases/clickhouse/kubernetes/manifests/namesp
 kubectl create secret generic clickhouse-auth --namespace clickhouse --from-literal=admin-password="$(openssl rand -base64 32 | tr -d '\n')"
 ```
 
+The storage class manifest intentionally matches the AKS built-in `managed-csi-premium` class, so `kubectl apply` is safe on clusters where the class already exists.
+
 The checked-in Helm values reference `clickhouse-auth` and key `admin-password`, so the password stays outside source control.
 
 ## Install ClickHouse
@@ -66,6 +68,8 @@ helm repo update
 helm upgrade --install clickhouse bitnami/clickhouse --version "$CLICKHOUSE_HELM_VERSION" --namespace clickhouse --values workloads/olap-databases/clickhouse/kubernetes/helm/clickhouse-values.yaml
 ```
 
+The chart stays on the Bitnami Helm repo, but the checked-in values override the runtime images to `docker.io/bitnamilegacy/...` because the pinned versioned `docker.io/bitnami/...` ClickHouse tags are no longer published.
+
 ## Validate the deployment
 
 ```bash
@@ -76,6 +80,29 @@ kubectl port-forward svc/clickhouse 8123:8123 9000:9000 -n clickhouse
 curl http://127.0.0.1:8123/ping
 curl --user default:$CLICKHOUSE_PASSWORD "http://127.0.0.1:8123/?query=SELECT%20version()"
 curl --user default:$CLICKHOUSE_PASSWORD "http://127.0.0.1:8123/?query=SELECT%20cluster%2Cshard_num%2Creplica_num%2Chost_name%20FROM%20system.clusters%20WHERE%20cluster%3D%27aks-clickhouse%27%20FORMAT%20PrettyCompact"
+```
+
+## Tear down the environment
+
+Uninstall the workload before deleting the cluster or running Terraform destroy so the dedicated `clickhouse` node pool can drain cleanly:
+
+```bash
+helm uninstall clickhouse -n clickhouse
+kubectl delete pvc --all -n clickhouse --wait=false
+kubectl delete namespace clickhouse --wait=true --timeout=600s
+```
+
+For the Bicep path, delete the resource group after the workload is gone:
+
+```bash
+az group delete --name "$RESOURCE_GROUP" --yes --no-wait
+```
+
+For the Terraform path, run destroy with the same variable values you used for apply:
+
+```bash
+cd workloads/olap-databases/clickhouse/infra/terraform
+terraform destroy -auto-approve
 ```
 
 ## Internal load balancer path
@@ -96,4 +123,6 @@ Keep Keeper on `ClusterIP` and leave the checked-in default private.
 - the pinned values create 2 shards × 2 replicas plus a 3-node Keeper quorum
 - each ClickHouse and Keeper pod gets its own Premium SSD-backed PVC
 - the chart expects the secret `clickhouse-auth` with key `admin-password`
+- the checked-in values currently use `docker.io/bitnamilegacy/clickhouse` and `docker.io/bitnamilegacy/clickhouse-keeper` as a compatibility bridge for the pinned versioned images
+- uninstalling the workload before AKS deletion or Terraform destroy keeps the dedicated `clickhouse` pool from blocking teardown
 - when you add backup storage or Azure-integrated engines later, use managed identity auth rather than storage account keys

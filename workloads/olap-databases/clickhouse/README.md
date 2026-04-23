@@ -6,7 +6,7 @@ This blueprint is the starter path for running **ClickHouse** on AKS with AKS AV
 
 - **AKS AVM baseline** for repeatable cluster creation
 - **Terraform and Bicep** wrappers side by side
-- **Bitnami ClickHouse chart `9.4.7`** pinned to **ClickHouse `25.7.5`**
+- **Bitnami ClickHouse chart `9.4.4`** pinned to **ClickHouse `25.7.5`**
 - **One dedicated `clickhouse` user pool with 3 nodes** for ClickHouse and Keeper placement
 - **Internal-only service exposure by default** using `ClusterIP` plus port-forward or an internal load balancer override
 - **Per-replica Premium SSD PVCs** for ClickHouse and ClickHouse Keeper
@@ -23,6 +23,8 @@ ClickHouse is a stateful analytical database platform, not a generic stateless w
 - `kubectl get pvc` is a first-class validation step because each replica depends on a bound volume before it can serve data safely
 
 Those characteristics are why this blueprint emphasizes dedicated node pools, internal-only access, existing secret references, and per-replica Azure Disk-backed storage from the start.
+
+The checked-in values currently override the chart images to `docker.io/bitnamilegacy/...` because Bitnami removed the pinned versioned ClickHouse images from `docker.io/bitnami`. Keep that override as a compatibility bridge until this workload moves to a longer-term supported image source.
 
 ## Recommended starting pattern
 
