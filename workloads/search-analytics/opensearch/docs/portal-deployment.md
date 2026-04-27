@@ -2,6 +2,12 @@
 
 Use this guide when the team wants to understand or validate the Azure resource shape in the portal before settling into full automation.
 
+If you want the portal to run the full deployment, use the checked-in full template:
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-full.json)
+
+The full template asks for an OpenSearch admin password, deploys the Azure baseline, and then uses an Azure deployment script to run the Kubernetes namespace, secret, Helm, readiness, and snapshot repository steps. If you only want the Azure baseline and prefer to run the Kubernetes and Helm steps yourself, use `infra/portal/azuredeploy.json`.
+
 ## Outcome
 
 You should end with:
