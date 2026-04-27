@@ -72,6 +72,8 @@ Use the portal button when you want Azure to prompt for baseline values and crea
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy.json)
 
+The portal button deploys only the Azure baseline. It does not install OpenSearch or assume an admin password; you provide that password later when creating the Kubernetes secrets before the Helm install.
+
 Use the one-command script when you want the full end-to-end flow, including Kubernetes namespace bootstrap, secrets, Helm releases, readiness checks, and snapshot repository verification:
 
 ```bash

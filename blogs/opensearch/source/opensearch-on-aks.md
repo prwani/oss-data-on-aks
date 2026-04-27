@@ -119,7 +119,7 @@ If you want to start from the Azure portal, use this button to deploy the Azure 
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy.json)
 
-The portal flow creates the AKS cluster, dedicated node pools, snapshot storage account, managed identity, and federated credentials. After the portal deployment completes, continue with Step 2 below to install OpenSearch and Dashboards.
+The portal flow creates the AKS cluster, dedicated node pools, snapshot storage account, managed identity, and federated credentials. It does **not** install OpenSearch or create an admin password. After the portal deployment completes, continue with Step 2 below; you provide `<strong-admin-password>` yourself when creating the Kubernetes secrets in Step 3.
 
 If you want one command to run the full workflow, use the helper script. It asks for the deployment engine, resource group, region, cluster name, storage account, and admin password, then runs the Azure deployment plus the Kubernetes, Helm, validation, and snapshot repository steps:
 
