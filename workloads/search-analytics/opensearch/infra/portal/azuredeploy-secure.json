@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "11687585020353052471"
+      "templateHash": "5661606787660974434"
     }
   },
   "parameters": {
@@ -187,8 +187,14 @@
         "purpose": "deployment-script"
       },
       "properties": {
+        "allowSharedKeyAccess": true,
         "allowBlobPublicAccess": false,
         "minimumTlsVersion": "TLS1_2",
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Allow"
+        },
+        "publicNetworkAccess": "Enabled",
         "supportsHttpsTrafficOnly": true
       }
     },

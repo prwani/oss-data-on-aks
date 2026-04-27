@@ -136,8 +136,14 @@ resource deploymentScriptStorage 'Microsoft.Storage/storageAccounts@2023-05-01' 
     purpose: 'deployment-script'
   }
   properties: {
+    allowSharedKeyAccess: true
     allowBlobPublicAccess: false
     minimumTlsVersion: 'TLS1_2'
+    networkAcls: {
+      bypass: 'AzureServices'
+      defaultAction: 'Allow'
+    }
+    publicNetworkAccess: 'Enabled'
     supportsHttpsTrafficOnly: true
   }
 }
