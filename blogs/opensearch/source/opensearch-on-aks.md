@@ -260,6 +260,8 @@ To find the internal Dashboards URL, check the service after Azure assigns the p
 kubectl get svc opensearch-dashboards -n opensearch
 ```
 
+Use the private address shown in the service's `EXTERNAL-IP` column. Do not use the `CLUSTER-IP`; that address is only reachable from inside the Kubernetes cluster.
+
 From a network path that can reach the AKS virtual network, open `http://<dashboards-internal-ip>:5601`. If you are testing from your workstation and do not have private network connectivity to that internal IP, use port-forward instead:
 
 ```bash
