@@ -64,17 +64,22 @@
     <rect x="420" y="442" width="650" height="330" rx="18" class="subnet" />
     <text x="443" y="471" font-size="16" font-weight="700" fill="#17324d">AKS node subnet</text>
     <text x="443" y="493" class="small">Private AKS cluster with dedicated node pools for stateful OpenSearch roles.</text>
+    <g id="aks-private-cluster-boundary">
+      <rect x="425" y="500" width="635" height="260" rx="18" fill="#ffffff" stroke="#7aa6d8" stroke-width="2" />
+      <text x="715" y="528" font-size="16" font-weight="700" fill="#17324d">AKS private cluster</text>
+      <text x="715" y="550" class="small">Pods and node pools run behind the private control plane boundary.</text>
+    </g>
     <g class="service-icon">
       <rect x="432" y="507" width="58" height="58" rx="14" fill="#ffffff" stroke="#c8d7ec" />
       <image x="440" y="515" width="42" height="42" href="data:image/svg+xml;base64,PHN2ZyBpZD0iYWY2YTJjNDItYmQ0OC00ODU3LWE0NzktYWVjZjhiM2RlNGY2IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImI3MGM5Y2YxLWJhYjgtNDdlMC1iYmRiLWNlMWNkNjY0ZDI2OCIgeDE9IjIuOTQiIHkxPSIzLjc0IiB4Mj0iOC42NyIgeTI9IjMuNzQiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNiNzdhZjQiIC8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNzczYWRjIiAvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJiZWI2OTk1My1iZDk2LTQ1MTUtODg0My1hYzEyNTQ2YWY5MzYiIHgxPSI5LjEzIiB5MT0iMy43OSIgeDI9IjE0Ljg1IiB5Mj0iMy43OSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2I3N2FmNCIgLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3NzNhZGMiIC8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImEzOWM3NmU4LTU0N2UtNGViNC1iYzI1LWQ4MWMwZjhjZGE2MiIgeDE9IjAuMDEiIHkxPSI5LjEyIiB4Mj0iNS43MyIgeTI9IjkuMTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNiNzdhZjQiIC8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNzczYWRjIiAvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJmMGEyYTQ5MS0xN2RjLTRiYjgtYmJmYy1lZTU4YTVjZjQ3ZGEiIHgxPSI2LjE4IiB5MT0iOS4wOCIgeDI9IjExLjkiIHkyPSI5LjA4IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYjc3YWY0IiAvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzc3M2FkYyIgLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iZWZjNmE1NmQtODU4NS00MTdkLTkzMWEtMWRhYzIxMTRjY2QwIiB4MT0iMTIuMzUiIHkxPSI5LjEzIiB4Mj0iMTguMDgiIHkyPSI5LjEzIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYjc3YWY0IiAvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzc3M2FkYyIgLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iZTM5OWFhOTMtMzQxZi00ZGYyLTljMDItNjAzYjgyYjQ4NGMyIiB4MT0iMi44NyIgeTE9IjE0LjU2IiB4Mj0iOC42IiB5Mj0iMTQuNTYiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNiNzdhZjQiIC8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNzczYWRjIiAvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJhMTUyYmJhMC1iYTJiLTQ4M2EtYjhjMS0wYWU3ZGUzNTU5OTAiIHgxPSI5LjA1IiB5MT0iMTQuNiIgeDI9IjE0Ljc4IiB5Mj0iMTQuNiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2I3N2FmNCIgLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3NzNhZGMiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHRpdGxlPkljb24tY29tcHV0ZS0yMzwvdGl0bGU+PHBvbHlnb24gcG9pbnRzPSI1LjggMS4yMiAyLjk0IDEuNzUgMi45NCA1LjY1IDUuOCA2LjI2IDguNjcgNS4xMSA4LjY3IDIuMiA1LjggMS4yMiIgZmlsbD0idXJsKCNiNzBjOWNmMS1iYWI4LTQ3ZTAtYmJkYi1jZTFjZDY2NGQyNjgpIiAvPjxwYXRoIGQ9Ik01LjkxLDYuMiw4LjUzLDUuMTRBLjIuMiwwLDAsMCw4LjY1LDVWMi4zNmEuMjEuMjEsMCwwLDAtLjEzLS4xOGwtMi42NS0uOUg1Ljc1bC0yLjYuNDhBLjIuMiwwLDAsMCwzLDEuOTRWNS40N2EuMTkuMTksMCwwLDAsLjE1LjE5bDIuNjMuNTVBLjMyLjMyLDAsMCwwLDUuOTEsNi4yWiIgZmlsbD0ibm9uZSIgLz48cGF0aCBkPSJNMi45NCwxLjc1djMuOWwyLjg5LjYxdi01Wm0xLjIyLDMuNi0uODEtLjE2di0zbC44MS0uMTNabTEuMjYuMjMtLjkzLS4xNVYybC45My0uMTZaIiBmaWxsPSIjMzQxYTZlIiAvPjxwb2x5Z29uIHBvaW50cz0iMTEuOTkgMS4yNyA5LjEzIDEuOCA5LjEzIDUuNyAxMS45OSA2LjMxIDE0Ljg1IDUuMTUgMTQuODUgMi4yNSAxMS45OSAxLjI3IiBmaWxsPSJ1cmwoI2JlYjY5OTUzLWJkOTYtNDUxNS04ODQzLWFjMTI1NDZhZjkzNikiIC8+PHBhdGggZD0iTTkuMTMsMS44VjUuN0wxMiw2LjMxdi01Wm0xLjIxLDMuNi0uODEtLjE2di0zbC44MS0uMTNabTEuMjYuMjMtLjkzLS4xNVYyLjA1bC45My0uMTdaIiBmaWxsPSIjMzQxYTZlIiAvPjxwb2x5Z29uIHBvaW50cz0iMi44NyA2LjYgMC4wMSA3LjEzIDAuMDEgMTEuMDMgMi44NyAxMS42NCA1Ljc0IDEwLjQ5IDUuNzQgNy41OCAyLjg3IDYuNiIgZmlsbD0idXJsKCNhMzljNzZlOC01NDdlLTRlYjQtYmMyNS1kODFjMGY4Y2RhNjIpIiAvPjxwYXRoIGQ9Ik0wLDcuMTNWMTFsMi44OS42MXYtNVptMS4yMSwzLjYxLS44MS0uMTd2LTNsLjgxLS4xNFpNMi40OCwxMWwtLjkzLS4xNVY3LjM4bC45My0uMTZaIiBmaWxsPSIjMzQxYTZlIiAvPjxwb2x5Z29uIHBvaW50cz0iOS4wNCA2LjU2IDYuMTggNy4wOSA2LjE4IDEwLjk5IDkuMDQgMTEuNjEgMTEuOSAxMC40NSAxMS45IDcuNTQgOS4wNCA2LjU2IiBmaWxsPSJ1cmwoI2YwYTJhNDkxLTE3ZGMtNGJiOC1iYmZjLWVlNThhNWNmNDdkYSkiIC8+PHBhdGggZD0iTTYuMTgsNy4wOVYxMWwyLjg4LjYxdi01Wk03LjM5LDEwLjdsLS44MS0uMTd2LTNsLjgxLS4xNFptMS4yNi4yMi0uOTMtLjE1VjcuMzRsLjkzLS4xNloiIGZpbGw9IiMzNDFhNmUiIC8+PHBvbHlnb24gcG9pbnRzPSIxNS4yMSA2LjYxIDEyLjM1IDcuMTQgMTIuMzUgMTEuMDQgMTUuMjEgMTEuNjUgMTguMDggMTAuNSAxOC4wOCA3LjU5IDE1LjIxIDYuNjEiIGZpbGw9InVybCgjZWZjNmE1NmQtODU4NS00MTdkLTkzMWEtMWRhYzIxMTRjY2QwKSIgLz48cGF0aCBkPSJNMTIuMzUsNy4xNFYxMWwyLjg5LjYxdi01Wm0xLjIyLDMuNjEtLjgxLS4xN3YtM2wuODEtLjE0Wm0xLjI2LjIyLS45My0uMTVWNy4zOWwuOTMtLjE2WiIgZmlsbD0iIzM0MWE2ZSIgLz48cG9seWdvbiBwb2ludHM9IjUuNzMgMTIuMDQgMi44NyAxMi41NiAyLjg3IDE2LjQ2IDUuNzMgMTcuMDggOC42IDE1LjkyIDguNiAxMy4wMiA1LjczIDEyLjA0IiBmaWxsPSJ1cmwoI2UzOTlhYTkzLTM0MWYtNGRmMi05YzAyLTYwM2I4MmI0ODRjMikiIC8+PHBhdGggZD0iTTUuODQsMTcsOC40NSwxNmEuMTguMTgsMCwwLDAsLjEyLS4xOHYtMi42QS4yLjIsMCwwLDAsOC40NCwxM0w1LjgsMTIuMWEuMTcuMTcsMCwwLDAtLjEyLDBsLTIuNi40N2EuMTkuMTksMCwwLDAtLjE2LjE5djMuNTRhLjE5LjE5LDAsMCwwLC4xNS4xOUw1LjcsMTdBLjIzLjIzLDAsMCwwLDUuODQsMTdaIiBmaWxsPSJub25lIiAvPjxwYXRoIGQ9Ik0yLjg3LDEyLjU2djMuOWwyLjg5LjYyVjEyWm0xLjIyLDMuNjFMMy4yOCwxNlYxM2wuODEtLjE0Wm0xLjI2LjIzLS45My0uMTVWMTIuODFsLjkzLS4xNloiIGZpbGw9IiMzNDFhNmUiIC8+PHBvbHlnb24gcG9pbnRzPSIxMS45MSAxMi4wOCA5LjA1IDEyLjYxIDkuMDUgMTYuNTEgMTEuOTEgMTcuMTIgMTQuNzggMTUuOTcgMTQuNzggMTMuMDYgMTEuOTEgMTIuMDgiIGZpbGw9InVybCgjYTE1MmJiYTAtYmEyYi00ODNhLWI4YzEtMGFlN2RlMzU1OTkwKSIgLz48cGF0aCBkPSJNOS4wNSwxMi42MXYzLjlsMi44OS42MXYtNVptMS4yMiwzLjYxLS44MS0uMTd2LTNsLjgxLS4xNFptMS4yNi4yMi0uOTMtLjE1VjEyLjg2bC45My0uMTZaIiBmaWxsPSIjMzQxYTZlIiAvPjwvc3ZnPg==" />
-      <text x="461.0" y="574.0" text-anchor="middle" font-size="13" font-weight="600" fill="#172033">AKS private cluster</text><text x="461.0" y="589.0" text-anchor="middle" font-size="11" font-weight="400" fill="#516071">Workload Identity enabled</text>
+      <text x="461.0" y="574.0" text-anchor="middle" font-size="13" font-weight="600" fill="#172033">AKS</text><text x="461.0" y="589.0" text-anchor="middle" font-size="11" font-weight="400" fill="#516071">Workload Identity enabled</text>
     </g>
     <g class="service-icon">
       <rect x="632" y="507" width="58" height="58" rx="14" fill="#ffffff" stroke="#c8d7ec" />
       <image x="640" y="515" width="42" height="42" href="data:image/svg+xml;base64,PHN2ZyBpZD0iZTFlNzFlMjktMDY1YS00NmY3LWFkNGItNTJhZjM2YTBiZmNiIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImVmODQ2NjNhLWE3YjYtNDZhNy1hMjc1LTFlNDE5ZjVlYWU2MiIgeDE9IjkiIHkxPSIxOS44NSIgeDI9IjkiIHkyPSItMS4wMiIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVlOTYyNCIgLz48c3RvcCBvZmZzZXQ9IjAuMDIiIHN0b3AtY29sb3I9IiM1Zjk3MjQiIC8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNzZiYzJkIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjx0aXRsZT5JY29uLW5ldHdvcmtpbmctNjI8L3RpdGxlPjxwYXRoIGQ9Ik0uMTgsOC41Nyw4LjU3LjE4YS42LjYsMCwwLDEsLjg2LDBsOC4zOSw4LjM5YS42LjYsMCwwLDEsMCwuODZsLTguNCw4LjRhLjYuNiwwLDAsMS0uODQsMEwuMTgsOS40M0EuNi42LDAsMCwxLC4xOCw4LjU3WiIgZmlsbD0idXJsKCNlZjg0NjYzYS1hN2I2LTQ2YTctYTI3NS0xZTQxOWY1ZWFlNjIpIiAvPjxwYXRoIGQ9Ik0xMS4yLDQsOS4wOCwxLjg5YS4xMi4xMiwwLDAsMC0uMTYsMEw2LjgsNGEuMS4xLDAsMCwwLC4wOC4xOEg4LjEyYS4xMS4xMSwwLDAsMSwuMTEuMTF2MmEuMTEuMTEsMCwwLDAsLjExLjExSDkuNjZhLjExLjExLDAsMCwwLC4xMS0uMTF2LTJhLjExLjExLDAsMCwxLC4xMS0uMTFoMS4yNEEuMS4xLDAsMCwwLDExLjIsNFoiIGZpbGw9IiNiNGVjMzYiIC8+PHBhdGggZD0iTTQsNi42MSwxLjksOC43NGEuMTEuMTEsMCwwLDAsMCwuMTVMNCwxMWEuMTEuMTEsMCwwLDAsLjE5LS4wOFY5LjY5YS4xMS4xMSwwLDAsMSwuMTEtLjExaDJhLjEuMSwwLDAsMCwuMS0uMTFWOC4xNUEuMS4xLDAsMCwwLDYuMzMsOGgtMmEuMS4xLDAsMCwxLS4xMS0uMVY2LjY5QS4xMS4xMSwwLDAsMCw0LDYuNjFaIiBmaWxsPSIjYjRlYzM2IiAvPjxwYXRoIGQ9Ik0xNC4wOCwxMWwyLjEzLTIuMTJhLjExLjExLDAsMCwwLDAtLjE1TDE0LjA4LDYuNjFhLjExLjExLDAsMCwwLS4xOC4wOFY3Ljk0YS4xLjEsMCwwLDEtLjExLjFoLTJhLjEuMSwwLDAsMC0uMS4xMVY5LjQ3YS4xLjEsMCwwLDAsLjEuMTFoMmEuMTEuMTEsMCwwLDEsLjExLjExdjEuMjRBLjExLjExLDAsMCwwLDE0LjA4LDExWiIgZmlsbD0iI2I0ZWMzNiIgLz48cGF0aCBkPSJNMTEuNzksOWEyLjc5LDIuNzksMCwxLDAtMy41NCwyLjY3di45NWExLjcxLDEuNzEsMCwxLDAsMS41Nywwdi0xQTIuNzcsMi43NywwLDAsMCwxMS43OSw5WiIgZmlsbD0iI2ZmZiIgLz48Y2lyY2xlIGlkPSJlOTljMzM4Ny0xNWMzLTRmMjgtYmQ0Yi1jYjIwOWI0MzBlMDYiIGN4PSI5LjAxIiBjeT0iOC45OSIgcj0iMS42MiIgZmlsbD0iIzVlYTBlZiIgLz48L3N2Zz4=" />
       <text x="661.0" y="574.0" text-anchor="middle" font-size="13" font-weight="600" fill="#172033">Internal Load Balancer</text><text x="661.0" y="589.0" text-anchor="middle" font-size="11" font-weight="400" fill="#516071">OpenSearch Dashboards</text>
     </g>
-    <path class="arrow" d="M610,538 L635,538" /><text x="622.5" y="530" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">10.x private IP</text>
+    <text x="661" y="610" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">10.x private IP</text>
 
     <g id="node-pools">
       <rect x="445" y="635" width="180" height="105" rx="16" class="nodepool" />
@@ -127,11 +132,11 @@
     <rect x="318" y="274" width="128" height="22" rx="11" fill="#f5f9ff" opacity="0.94" />
     <text x="382" y="289" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">portal creates script</text>
 
-    <path class="arrow" d="M308,318 C390,445 520,525 640,555" />
+    <path class="arrow" d="M308,318 C356,438 390,555 425,590" />
     <rect x="380" y="428" width="160" height="22" rx="11" fill="#f5f9ff" opacity="0.94" />
     <text x="460" y="443" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">private Dashboards path</text>
 
-    <path class="secure-arrow" d="M760,382 L760,510" />
+    <path class="secure-arrow" d="M760,382 L760,500" />
     <rect x="718" y="428" width="84" height="22" rx="11" fill="#f5f9ff" opacity="0.94" />
     <text x="760" y="443" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">kubectl / Helm</text>
 
@@ -139,19 +144,19 @@
     <rect x="787" y="344" width="132" height="22" rx="11" fill="#f5f9ff" opacity="0.94" />
     <text x="853" y="359" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">script state/logs</text>
 
-    <path class="secure-arrow" d="M905,565 L1240,290" />
+    <path class="secure-arrow" d="M1060,560 L1240,290" />
     <rect x="1034" y="389" width="105" height="22" rx="11" fill="#f5f9ff" opacity="0.94" />
     <text x="1086" y="404" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">federated token</text>
 
-    <path class="secure-arrow" d="M970,690 L1240,516" />
+    <path class="secure-arrow" d="M1060,650 L1240,516" />
     <rect x="1050" y="565" width="118" height="22" rx="11" fill="#f5f9ff" opacity="0.94" />
     <text x="1109" y="580" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">keyless snapshots</text>
 
-    <path class="secure-arrow" d="M840,720 L1240,630" />
+    <path class="secure-arrow" d="M840,760 L1240,630" />
     <rect x="975" y="657" width="136" height="22" rx="11" fill="#f5f9ff" opacity="0.94" />
     <text x="1043" y="672" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">encrypted Azure Disks</text>
 
-    <path class="arrow" d="M1040,735 L1240,740" />
+    <path class="arrow" d="M1060,735 L1240,740" />
     <rect x="1058" y="716" width="164" height="22" rx="11" fill="#f5f9ff" opacity="0.94" />
     <text x="1140" y="731" text-anchor="middle" font-size="12" font-weight="600" fill="#315b7d">posture + recommendations</text>
   </g>
