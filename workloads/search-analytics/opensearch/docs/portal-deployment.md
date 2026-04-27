@@ -14,6 +14,8 @@ For a private AKS API server with the same one-click experience, use the secure 
 
 The secure template creates the VNet, AKS subnet, and Azure Container Instances subnet used by the deployment script. That VNet-integrated script is what allows the portal deployment to continue running `kubectl` and Helm after the AKS API server is private.
 
+The secure template also includes a demo-only `exposePublicEndpoints` parameter. Leave it `false` for the private default. If you set it to `true`, the install script publishes both Dashboards and the OpenSearch manager service through public Azure Load Balancers so the blog sample API calls can run from a laptop without VPN or Bastion. This exposes the full authenticated OpenSearch API surface on port `9200`, not only the sample paths.
+
 ## Outcome
 
 You should end with:
@@ -23,6 +25,7 @@ You should end with:
 - an `opensearch` namespace
 - Helm releases for manager nodes, data nodes, and Dashboards
 - internal operator access to Dashboards and private API access to OpenSearch
+- optional demo public endpoints for Dashboards and OpenSearch manager API when `exposePublicEndpoints` is enabled
 - an optional Azure Blob snapshot target wired for managed-identity access instead of storage keys
 
 ## Step 1: Review the blueprint assets
@@ -176,4 +179,5 @@ Check for:
 - confirm the `osmgr` and `osdata` pools have the expected VM size and disk profile
 - confirm the AKS region supports the storage and zoning decisions you chose
 - confirm the Dashboards load balancer is internal-only
+- if `exposePublicEndpoints` was enabled for a demo, confirm that both public Load Balancers are removed or changed back to internal after validation
 - confirm shared-key access stays disabled on the snapshot storage account and that the managed identity is scoped to the snapshot container

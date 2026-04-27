@@ -133,6 +133,8 @@ For a private AKS control plane, use the secure portal deployment:
 
 The secure template creates a VNet, places AKS nodes in a private subnet, disables public AKS API access, and runs the installation script from an Azure Container Instances subnet inside the same VNet so `kubectl` and Helm can reach the private API server.
 
+For short-lived demos where your laptop must reach the examples without VPN or Bastion, the secure template also has an `exposePublicEndpoints` parameter. Keep it `false` for the private default. If you set it to `true`, the template publishes Dashboards and the OpenSearch manager service through public Azure Load Balancers. That is convenient for the sample calls later in this post, but it exposes **all authenticated OpenSearch APIs** on port `9200`, not only the sample paths, so do not use it as a production hardening pattern.
+
 If you only want the Azure baseline and prefer to run the Kubernetes and Helm steps yourself, use the baseline template at `workloads/search-analytics/opensearch/infra/portal/azuredeploy.json` instead.
 
 If you want one command to run the full workflow, use the helper script. It asks for the deployment engine, resource group, region, cluster name, storage account, and admin password, then runs the Azure deployment plus the Kubernetes, Helm, validation, and snapshot repository steps:
@@ -349,18 +351,23 @@ It gives teams a cleaner path than an all-in-one Helm demo:
 
 ## Try a few OpenSearch API calls
 
-The OpenSearch documentation has a good [Search data](https://docs.opensearch.org/latest/getting-started/search-data/) walkthrough that introduces query string queries and Query DSL. After the AKS deployment is healthy, you can run the same style of examples against your cluster through the port-forwarded manager service.
+The OpenSearch documentation has a good [Search data](https://docs.opensearch.org/latest/getting-started/search-data/) walkthrough that introduces query string queries and Query DSL. After the AKS deployment is healthy, you can run the same style of examples against your cluster through the port-forwarded manager service, or through the secure portal template's demo-only public endpoint if you enabled `exposePublicEndpoints`.
 
 First, load a small sample data set:
 
 ```bash
 kubectl port-forward svc/opensearch-manager 9200:9200 -n opensearch
+export OPENSEARCH_URL=https://127.0.0.1:9200
+
+# If you enabled exposePublicEndpoints in the secure portal template, skip the
+# port-forward and use the public OpenSearch API URL from the deployment output:
+# export OPENSEARCH_URL=https://<opensearch-public-ip>:9200
 
 curl -k -u "admin:<your-admin-password>" \
-  -XDELETE https://127.0.0.1:9200/students
+  -XDELETE "${OPENSEARCH_URL}/students"
 
 curl -k -u "admin:<your-admin-password>" \
-  -XPOST "https://127.0.0.1:9200/_bulk?refresh=true" \
+  -XPOST "${OPENSEARCH_URL}/_bulk?refresh=true" \
   -H 'Content-Type: application/x-ndjson' \
   --data-binary @- <<'EOF'
 { "create": { "_index": "students", "_id": "1" } }
@@ -377,26 +384,26 @@ Then try a few searches:
 ```bash
 # Retrieve all documents.
 curl -k -u "admin:<your-admin-password>" \
-  https://127.0.0.1:9200/students/_search?pretty
+  "${OPENSEARCH_URL}/students/_search?pretty"
 
 # Use a query string query.
 curl -k -u "admin:<your-admin-password>" \
-  "https://127.0.0.1:9200/students/_search?q=name:john&pretty"
+  "${OPENSEARCH_URL}/students/_search?q=name:john&pretty"
 
 # Use Query DSL full-text search.
 curl -k -u "admin:<your-admin-password>" \
-  -XGET https://127.0.0.1:9200/students/_search?pretty \
+  -XGET "${OPENSEARCH_URL}/students/_search?pretty" \
   -H 'Content-Type: application/json' \
   -d '{"query":{"match":{"name":"doe john"}}}'
 
 # Use exact-value and range filters.
 curl -k -u "admin:<your-admin-password>" \
-  -XGET https://127.0.0.1:9200/students/_search?pretty \
+  -XGET "${OPENSEARCH_URL}/students/_search?pretty" \
   -H 'Content-Type: application/json' \
   -d '{"query":{"bool":{"must":[{"match":{"name":"doe"}},{"range":{"gpa":{"gte":3.6,"lte":3.9}}},{"term":{"grad_year":2022}}]}}}'
 ```
 
-Those examples are intentionally small, but they prove that indexing, search, full-text analysis, exact filters, and range filters are working through the internal OpenSearch API. After you have data in the cluster, use the [OpenSearch Dashboards quickstart](https://docs.opensearch.org/latest/dashboards/quickstart/) to explore it visually in Dashboards.
+Those examples are intentionally small, but they prove that indexing, search, full-text analysis, exact filters, and range filters are working. Keep the API private for normal use. If you temporarily enabled the demo public endpoint, remove it after validation because the public Load Balancer exposes the full authenticated OpenSearch API surface. After you have data in the cluster, use the [OpenSearch Dashboards quickstart](https://docs.opensearch.org/latest/dashboards/quickstart/) to explore it visually in Dashboards.
 
 ## What comes next
 

@@ -38,6 +38,9 @@ param aksSubnetAddressPrefix string = '10.240.0.0/20'
 @description('Deployment script subnet address prefix. This subnet is delegated to Azure Container Instances so the script can reach the private AKS API.')
 param deploymentScriptSubnetAddressPrefix string = '10.240.16.0/24'
 
+@description('Demo-only option. When true, exposes OpenSearch manager API and Dashboards through public Azure LoadBalancers. This publishes all authenticated OpenSearch APIs on 9200, not only the sample blog API paths.')
+param exposePublicEndpoints bool = false
+
 var virtualNetworkName = 'vnet-${clusterName}'
 var aksSubnetName = 'snet-aks'
 var deploymentScriptSubnetName = 'snet-deployment-script'
@@ -263,6 +266,10 @@ resource installOpenSearch 'Microsoft.Resources/deploymentScripts@2023-08-01' = 
         value: opensearchDashboardsHelmVersion
       }
       {
+        name: 'EXPOSE_PUBLIC_ENDPOINTS'
+        value: string(exposePublicEndpoints)
+      }
+      {
         name: 'ADMIN_PASSWORD'
         secureValue: adminPassword
       }
@@ -274,6 +281,7 @@ resource installOpenSearch 'Microsoft.Resources/deploymentScripts@2023-08-01' = 
       export PATH="/usr/local/bin:${PATH}"
       workdir="$(mktemp -d)"
       cd "$workdir"
+      expose_public_endpoints="$(printf '%s' "$EXPOSE_PUBLIC_ENDPOINTS" | tr '[:upper:]' '[:lower:]')"
 
       echo "Installing kubectl and Helm..."
       az aks install-cli --only-show-errors
@@ -324,11 +332,25 @@ resource installOpenSearch 'Microsoft.Resources/deploymentScripts@2023-08-01' = 
       helm repo add opensearch https://opensearch-project.github.io/helm-charts/
       helm repo update
 
+      manager_value_args=(--values manager-values.yaml)
+      dashboards_value_args=(--values dashboards-values.yaml)
+      if [ "$expose_public_endpoints" = "true" ]; then
+        echo "Demo public endpoints are enabled. OpenSearch manager API and Dashboards will use public Azure LoadBalancers."
+        printf '%s\n' \
+          'service:' \
+          '  type: LoadBalancer' \
+          '  annotations:' \
+          '    service.beta.kubernetes.io/azure-load-balancer-internal: "false"' \
+          > public-service-values.yaml
+        manager_value_args+=(--values public-service-values.yaml)
+        dashboards_value_args+=(--values public-service-values.yaml)
+      fi
+
       helm upgrade --install opensearch-manager opensearch/opensearch \
         --version "$OPENSEARCH_HELM_VERSION" \
         --namespace opensearch \
         --set-string "rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=$SNAPSHOT_IDENTITY_CLIENT_ID" \
-        --values manager-values.yaml
+        "${manager_value_args[@]}"
 
       helm upgrade --install opensearch-data opensearch/opensearch \
         --version "$OPENSEARCH_HELM_VERSION" \
@@ -339,7 +361,7 @@ resource installOpenSearch 'Microsoft.Resources/deploymentScripts@2023-08-01' = 
       helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
         --version "$OPENSEARCH_DASHBOARDS_HELM_VERSION" \
         --namespace opensearch \
-        --values dashboards-values.yaml
+        "${dashboards_value_args[@]}"
 
       echo "Waiting for OpenSearch and Dashboards readiness..."
       kubectl wait --for=condition=Ready pod -n opensearch -l app.kubernetes.io/component=opensearch-manager --timeout=900s
@@ -371,6 +393,7 @@ resource installOpenSearch 'Microsoft.Resources/deploymentScripts@2023-08-01' = 
         -XPOST https://127.0.0.1:9200/_snapshot/azure-managed-identity/_verify?pretty
 
       dashboards_ip=""
+      opensearch_api_ip=""
       for attempt in $(seq 1 60); do
         dashboards_ip="$(kubectl get svc opensearch-dashboards -n opensearch -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
         if [ -n "$dashboards_ip" ]; then
@@ -379,10 +402,26 @@ resource installOpenSearch 'Microsoft.Resources/deploymentScripts@2023-08-01' = 
         sleep 10
       done
 
+      if [ "$expose_public_endpoints" = "true" ]; then
+        for attempt in $(seq 1 60); do
+          opensearch_api_ip="$(kubectl get svc opensearch-manager -n opensearch -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
+          if [ -n "$opensearch_api_ip" ]; then
+            break
+          fi
+          sleep 10
+        done
+      fi
+
       echo "Deployment complete."
-      echo "Dashboards internal URL: ${dashboards_ip:+http://${dashboards_ip}:5601}"
+      if [ "$expose_public_endpoints" = "true" ]; then
+        echo "OpenSearch public API URL: ${opensearch_api_ip:+https://${opensearch_api_ip}:9200}"
+        echo "Dashboards public URL: ${dashboards_ip:+http://${dashboards_ip}:5601}"
+        echo "Warning: the public OpenSearch API URL exposes all authenticated OpenSearch APIs, not only the blog sample paths."
+      else
+        echo "Dashboards internal URL: ${dashboards_ip:+http://${dashboards_ip}:5601}"
+        echo "If you cannot reach the internal IP, run: kubectl port-forward svc/opensearch-dashboards 5601:5601 -n opensearch"
+      fi
       echo "Dashboards username: admin"
-      echo "If you cannot reach the internal IP, run: kubectl port-forward svc/opensearch-dashboards 5601:5601 -n opensearch"
     '''
   }
   dependsOn: [
