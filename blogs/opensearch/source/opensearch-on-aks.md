@@ -84,6 +84,12 @@ For the first opinionated OpenSearch blueprint in this repo, I am using this sta
 
 *Custom AKS mapping for this repository. It combines OpenSearch cluster roles, shard/replica behavior, dedicated AKS node pools, StatefulSets, and per-pod PVC-backed Azure Disks.*
 
+The secure portal deployment keeps the same OpenSearch topology but adds a private AKS control plane and runs the Azure deployment script inside the VNet so the portal flow can still install the Kubernetes and Helm resources:
+
+![Secure OpenSearch-on-AKS architecture](../assets/opensearch-on-aks-secure-architecture.svg)
+
+*Secure deployment mapping using Microsoft Azure Architecture Icons. It highlights the private AKS API, deployment script subnet, internal Dashboards load balancer, workload identity to Blob snapshots, and encrypted persistent disks.*
+
 | Layer | Recommendation | Why |
 | --- | --- | --- |
 | AKS baseline | Shared AVM wrapper | Keeps cluster creation consistent across workloads |

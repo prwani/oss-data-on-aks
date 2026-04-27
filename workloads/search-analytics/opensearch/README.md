@@ -37,7 +37,7 @@ The checked-in Azure wrappers now make the snapshot path explicitly keyless: the
 
 ## Architecture visuals
 
-The first two figures below are official OpenSearch diagrams that explain the logical cluster model and shard/replica placement. The third figure maps those ideas onto this repository's AKS deployment pattern.
+The first two figures below are official OpenSearch diagrams that explain the logical cluster model and shard/replica placement. The remaining figures map those ideas onto this repository's standard and secure AKS deployment patterns.
 
 ![Official OpenSearch cluster architecture](../../../blogs/opensearch/assets/opensearch-cluster.png)
 
@@ -50,6 +50,10 @@ The first two figures below are official OpenSearch diagrams that explain the lo
 ![Combined OpenSearch-on-AKS architecture](../../../blogs/opensearch/assets/opensearch-on-aks-combined-architecture.svg)
 
 *Custom AKS mapping for this repository. It combines OpenSearch cluster roles, shard/replica behavior, dedicated AKS node pools, StatefulSets, and per-pod PVC-backed Azure Disks.*
+
+![Secure OpenSearch-on-AKS architecture](../../../blogs/opensearch/assets/opensearch-on-aks-secure-architecture.svg)
+
+*Secure deployment mapping using Microsoft Azure Architecture Icons. It highlights the private AKS API, deployment script subnet, internal Dashboards load balancer, workload identity to Blob snapshots, and encrypted persistent disks.*
 
 ## Blueprint contents
 
