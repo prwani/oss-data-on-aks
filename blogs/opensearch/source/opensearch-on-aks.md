@@ -115,11 +115,17 @@ Before you start, make sure you have:
 
 ## Pick your deployment experience
 
-If you want the Azure portal to run the full seven-step flow, use this button:
+If you want the Azure portal to run the full seven-step standard flow, use this button:
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-full.json)
 
 The full portal deployment asks for an admin password, creates the AKS cluster, dedicated node pools, snapshot storage account, managed identity, and federated credentials, then uses an Azure deployment script to run the Kubernetes namespace, secret, Helm, readiness, and snapshot repository steps. The password is passed to the deployment script as a secure parameter and is used to create the OpenSearch and Dashboards Kubernetes secrets.
+
+For a private AKS control plane, use the secure portal deployment:
+
+[![Deploy to Azure (secure)](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-secure.json)
+
+The secure template creates a VNet, places AKS nodes in a private subnet, disables public AKS API access, and runs the installation script from an Azure Container Instances subnet inside the same VNet so `kubectl` and Helm can reach the private API server.
 
 If you only want the Azure baseline and prefer to run the Kubernetes and Helm steps yourself, use the baseline template at `workloads/search-analytics/opensearch/infra/portal/azuredeploy.json` instead.
 

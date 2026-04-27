@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "12914184653089192094"
+      "templateHash": "11687585020353052471"
     }
   },
   "parameters": {
@@ -71,13 +71,127 @@
       "metadata": {
         "description": "Deployment script force-update tag. Keep the default unless you intentionally need to rerun the script during an incremental redeployment."
       }
+    },
+    "virtualNetworkAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.240.0.0/16",
+      "metadata": {
+        "description": "Virtual network address prefix for the private AKS deployment."
+      }
+    },
+    "aksSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.240.0.0/20",
+      "metadata": {
+        "description": "AKS node subnet address prefix."
+      }
+    },
+    "deploymentScriptSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.240.16.0/24",
+      "metadata": {
+        "description": "Deployment script subnet address prefix. This subnet is delegated to Azure Container Instances so the script can reach the private AKS API."
+      }
     }
   },
   "variables": {
-    "deploymentScriptIdentityName": "[format('id-{0}-portal-deploy', parameters('clusterName'))]",
-    "aksClusterAdminRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8')]"
+    "virtualNetworkName": "[format('vnet-{0}', parameters('clusterName'))]",
+    "aksSubnetName": "snet-aks",
+    "deploymentScriptSubnetName": "snet-deployment-script",
+    "clusterIdentityName": "[format('id-{0}-aks', parameters('clusterName'))]",
+    "deploymentScriptIdentityName": "[format('id-{0}-portal-secure-deploy', parameters('clusterName'))]",
+    "deploymentScriptStorageAccountName": "[take(format('st{0}', uniqueString(resourceGroup().id, parameters('clusterName'), 'script')), 24)]",
+    "aksClusterAdminRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8')]",
+    "networkContributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4d97b98b-1d4f-4787-a291-c67834d212e7')]"
   },
   "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2024-05-01",
+      "name": "[variables('virtualNetworkName')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "workload": "opensearch",
+        "blueprint": "opensearch-on-aks",
+        "securityProfile": "secure"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('virtualNetworkAddressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('aksSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('aksSubnetAddressPrefix')]"
+            }
+          },
+          {
+            "name": "[variables('deploymentScriptSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('deploymentScriptSubnetAddressPrefix')]",
+              "delegations": [
+                {
+                  "name": "aci-delegation",
+                  "properties": {
+                    "serviceName": "Microsoft.ContainerInstance/containerGroups"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('clusterIdentityName')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "workload": "opensearch",
+        "blueprint": "opensearch-on-aks",
+        "securityProfile": "secure"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.Network/virtualNetworks/{0}/subnets/{1}', variables('virtualNetworkName'), variables('aksSubnetName'))]",
+      "name": "[guid(resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('aksSubnetName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('clusterIdentityName')), variables('networkContributorRoleDefinitionId'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('networkContributorRoleDefinitionId')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('clusterIdentityName')), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('clusterIdentityName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-05-01",
+      "name": "[variables('deploymentScriptStorageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "tags": {
+        "workload": "opensearch",
+        "blueprint": "opensearch-on-aks",
+        "securityProfile": "secure",
+        "purpose": "deployment-script"
+      },
+      "properties": {
+        "allowBlobPublicAccess": false,
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true
+      }
+    },
     {
       "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
       "apiVersion": "2023-01-31",
@@ -122,6 +236,18 @@
         "cleanupPreference": "OnSuccess",
         "retentionInterval": "P1D",
         "forceUpdateTag": "[parameters('deploymentScriptForceUpdateTag')]",
+        "containerSettings": {
+          "containerGroupName": "[format('aci-{0}', uniqueString(resourceGroup().id, parameters('clusterName')))]",
+          "subnetIds": [
+            {
+              "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('deploymentScriptSubnetName'))]"
+            }
+          ]
+        },
+        "storageAccountSettings": {
+          "storageAccountName": "[variables('deploymentScriptStorageAccountName')]",
+          "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('deploymentScriptStorageAccountName')), '2023-05-01').keys[0].value]"
+        },
         "environmentVariables": [
           {
             "name": "RESOURCE_GROUP",
@@ -165,7 +291,9 @@
       "dependsOn": [
         "[extensionResourceId(resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentityName')), variables('aksClusterAdminRoleDefinitionId')))]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentityName'))]",
-        "[resourceId('Microsoft.Resources/deployments', 'opensearchBaseline')]"
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('deploymentScriptStorageAccountName'))]",
+        "[resourceId('Microsoft.Resources/deployments', 'opensearchBaseline')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
       ]
     },
     {
@@ -192,6 +320,26 @@
           },
           "snapshotContainerName": {
             "value": "[parameters('snapshotContainerName')]"
+          },
+          "managedIdentities": {
+            "value": {
+              "userAssignedResourceIds": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('clusterIdentityName'))]"
+              ]
+            }
+          },
+          "vnetSubnetResourceId": {
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('aksSubnetName'))]"
+          },
+          "apiServerAccessProfile": {
+            "value": {
+              "enablePrivateCluster": true,
+              "enablePrivateClusterPublicFQDN": false,
+              "privateDNSZone": "System"
+            }
+          },
+          "publicNetworkAccess": {
+            "value": "Disabled"
           }
         },
         "template": {
@@ -4219,7 +4367,12 @@
             }
           }
         }
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('clusterIdentityName'))]",
+        "[extensionResourceId(resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('aksSubnetName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('aksSubnetName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('clusterIdentityName')), variables('networkContributorRoleDefinitionId')))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+      ]
     }
   ],
   "outputs": {

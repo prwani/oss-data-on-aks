@@ -15,6 +15,20 @@ param snapshotStorageAccountName string = 'opssnapdev001'
 @description('Container name for OpenSearch snapshots.')
 param snapshotContainerName string = 'opensearch-snapshots'
 
+@description('Optional AKS API server access profile. Use this for private cluster settings or authorized IP ranges.')
+param apiServerAccessProfile object?
+
+@description('Optional public network access setting for AKS.')
+param publicNetworkAccess string?
+
+@description('Optional VNet subnet resource ID for AKS nodes.')
+param vnetSubnetResourceId string = ''
+
+@description('Optional managed identity configuration for the AKS cluster.')
+param managedIdentities object = {
+  systemAssigned: true
+}
+
 var snapshotServiceAccountNamespace = 'opensearch'
 var snapshotManagerServiceAccountName = 'opensearch-manager-snapshots'
 var snapshotDataServiceAccountName = 'opensearch-data-snapshots'
@@ -35,6 +49,7 @@ var primaryAgentPoolProfiles = [
     mode: 'System'
     osType: 'Linux'
     type: 'VirtualMachineScaleSets'
+    vnetSubnetResourceId: empty(vnetSubnetResourceId) ? null : vnetSubnetResourceId
   }
 ]
 
@@ -50,6 +65,7 @@ var agentPools = [
     nodeTaints: [
       'dedicated=opensearch-manager:NoSchedule'
     ]
+    vnetSubnetResourceId: empty(vnetSubnetResourceId) ? null : vnetSubnetResourceId
   }
   {
     name: 'osdata'
@@ -62,6 +78,7 @@ var agentPools = [
     nodeTaints: [
       'dedicated=opensearch-data:NoSchedule'
     ]
+    vnetSubnetResourceId: empty(vnetSubnetResourceId) ? null : vnetSubnetResourceId
   }
 ]
 
@@ -73,6 +90,9 @@ module aksPlatform '../../../../../platform/aks-avm/bicep/main.bicep' = {
     dnsPrefix: '${clusterName}-dns'
     enableOidcIssuerProfile: true
     enableWorkloadIdentity: true
+    managedIdentities: managedIdentities
+    apiServerAccessProfile: apiServerAccessProfile
+    publicNetworkAccess: publicNetworkAccess
     primaryAgentPoolProfiles: primaryAgentPoolProfiles
     agentPools: agentPools
   }

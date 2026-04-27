@@ -39,6 +39,12 @@ param enableWorkloadIdentity bool = false
 @description('Whether to disable local AKS accounts. Keep this false unless the cluster is AAD-integrated.')
 param disableLocalAccounts bool = false
 
+@description('Optional AKS API server access profile. Use this for private cluster settings or authorized IP ranges.')
+param apiServerAccessProfile object?
+
+@description('Optional public network access setting for AKS.')
+param publicNetworkAccess string?
+
 @description('Whether to enable the Azure Disk CSI driver.')
 param enableStorageProfileDiskCSIDriver bool = true
 
@@ -69,6 +75,8 @@ module managedCluster 'br/public:avm/res/container-service/managed-cluster:0.13.
     enableStorageProfileDiskCSIDriver: enableStorageProfileDiskCSIDriver
     enableStorageProfileFileCSIDriver: enableStorageProfileFileCSIDriver
     enableStorageProfileSnapshotController: enableStorageProfileSnapshotController
+    apiServerAccessProfile: apiServerAccessProfile
+    publicNetworkAccess: publicNetworkAccess
   }
 }
 

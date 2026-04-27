@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "15589772631147897143"
+      "templateHash": "4372980050071199450"
     }
   },
   "parameters": {
@@ -44,6 +44,36 @@
       "metadata": {
         "description": "Container name for OpenSearch snapshots."
       }
+    },
+    "apiServerAccessProfile": {
+      "type": "object",
+      "nullable": true,
+      "metadata": {
+        "description": "Optional AKS API server access profile. Use this for private cluster settings or authorized IP ranges."
+      }
+    },
+    "publicNetworkAccess": {
+      "type": "string",
+      "nullable": true,
+      "metadata": {
+        "description": "Optional public network access setting for AKS."
+      }
+    },
+    "vnetSubnetResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional VNet subnet resource ID for AKS nodes."
+      }
+    },
+    "managedIdentities": {
+      "type": "object",
+      "defaultValue": {
+        "systemAssigned": true
+      },
+      "metadata": {
+        "description": "Optional managed identity configuration for the AKS cluster."
+      }
     }
   },
   "variables": {
@@ -62,7 +92,8 @@
         "vmSize": "Standard_D2s_v5",
         "mode": "System",
         "osType": "Linux",
-        "type": "VirtualMachineScaleSets"
+        "type": "VirtualMachineScaleSets",
+        "vnetSubnetResourceId": "[if(empty(parameters('vnetSubnetResourceId')), null(), parameters('vnetSubnetResourceId'))]"
       }
     ],
     "agentPools": [
@@ -76,7 +107,8 @@
         "type": "VirtualMachineScaleSets",
         "nodeTaints": [
           "dedicated=opensearch-manager:NoSchedule"
-        ]
+        ],
+        "vnetSubnetResourceId": "[if(empty(parameters('vnetSubnetResourceId')), null(), parameters('vnetSubnetResourceId'))]"
       },
       {
         "name": "osdata",
@@ -88,7 +120,8 @@
         "type": "VirtualMachineScaleSets",
         "nodeTaints": [
           "dedicated=opensearch-data:NoSchedule"
-        ]
+        ],
+        "vnetSubnetResourceId": "[if(empty(parameters('vnetSubnetResourceId')), null(), parameters('vnetSubnetResourceId'))]"
       }
     ]
   },
@@ -223,6 +256,15 @@
           "enableWorkloadIdentity": {
             "value": true
           },
+          "managedIdentities": {
+            "value": "[parameters('managedIdentities')]"
+          },
+          "apiServerAccessProfile": {
+            "value": "[parameters('apiServerAccessProfile')]"
+          },
+          "publicNetworkAccess": {
+            "value": "[parameters('publicNetworkAccess')]"
+          },
           "primaryAgentPoolProfiles": {
             "value": "[variables('primaryAgentPoolProfiles')]"
           },
@@ -238,7 +280,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "11400256293010393514"
+              "templateHash": "8979594402638532417"
             }
           },
           "parameters": {
@@ -316,6 +358,20 @@
                 "description": "Whether to disable local AKS accounts. Keep this false unless the cluster is AAD-integrated."
               }
             },
+            "apiServerAccessProfile": {
+              "type": "object",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional AKS API server access profile. Use this for private cluster settings or authorized IP ranges."
+              }
+            },
+            "publicNetworkAccess": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional public network access setting for AKS."
+              }
+            },
             "enableStorageProfileDiskCSIDriver": {
               "type": "bool",
               "defaultValue": true,
@@ -382,6 +438,12 @@
                   },
                   "enableStorageProfileSnapshotController": {
                     "value": "[parameters('enableStorageProfileSnapshotController')]"
+                  },
+                  "apiServerAccessProfile": {
+                    "value": "[parameters('apiServerAccessProfile')]"
+                  },
+                  "publicNetworkAccess": {
+                    "value": "[parameters('publicNetworkAccess')]"
                   }
                 },
                 "template": {

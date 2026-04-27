@@ -8,6 +8,12 @@ If you want the portal to run the full deployment, use the checked-in full templ
 
 The full template asks for an OpenSearch admin password, deploys the Azure baseline, and then uses an Azure deployment script to run the Kubernetes namespace, secret, Helm, readiness, and snapshot repository steps. If you only want the Azure baseline and prefer to run the Kubernetes and Helm steps yourself, use `infra/portal/azuredeploy.json`.
 
+For a private AKS API server with the same one-click experience, use the secure template:
+
+[![Deploy to Azure (secure)](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-secure.json)
+
+The secure template creates the VNet, AKS subnet, and Azure Container Instances subnet used by the deployment script. That VNet-integrated script is what allows the portal deployment to continue running `kubectl` and Helm after the AKS API server is private.
+
 ## Outcome
 
 You should end with:
