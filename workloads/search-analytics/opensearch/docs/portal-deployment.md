@@ -47,7 +47,7 @@ Use the portal to mirror the AVM-oriented design choices:
 
 | Pool | Purpose | Notes |
 | --- | --- | --- |
-| system/app | cluster add-ons and optional Dashboards | keep OpenSearch data pods off this pool |
+| system/app | cluster add-ons and optional Dashboards | keep OpenSearch data pods off this pool; scale beyond one node before running multiple Dashboards replicas |
 | osmgr | cluster-manager pods | start with at least 3 nodes so the default manager replicas can satisfy hard anti-affinity |
 | osdata | data and ingest pods | start with at least 3 nodes so the default data replicas can satisfy hard anti-affinity |
 
@@ -91,6 +91,7 @@ Apply the Premium storage class manifest, then the namespace, and then create re
 
 ```bash
 export SNAPSHOT_IDENTITY_CLIENT_ID=<managed-identity-client-id>
+export SNAPSHOT_STORAGE_ACCOUNT=<snapshot-storage-account-name>
 
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/namespace.yaml
@@ -104,9 +105,15 @@ kubectl create secret generic opensearch-dashboards-auth \
   --from-literal=password='<strong-admin-password>' \
   --from-literal=cookie='<32-character-cookie-secret>' \
   --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic opensearch-snapshot-settings \
+  --namespace opensearch \
+  --from-literal=azure.client.default.account="$SNAPSHOT_STORAGE_ACCOUNT" \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 Create real secrets instead of applying the example YAML files unchanged.
+The storage class manifest matches the AKS built-in `managed-csi-premium` definition, so `kubectl apply` stays safe whether the class already exists or needs to be created.
+The snapshot settings secret loads the storage account name into the OpenSearch keystore, which is required because `azure.client.default.account` is a secure setting.
 The namespace manifest uses the `privileged` Pod Security profile because the checked-in Helm values enable the chart's sysctl init container to raise `vm.max_map_count` before the OpenSearch JVM starts.
 
 ## Step 7: Install OpenSearch and Dashboards
@@ -118,22 +125,22 @@ helm repo update
 helm upgrade --install opensearch-manager opensearch/opensearch \
   --version 3.6.0 \
   --namespace opensearch \
-  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
+  --set-string "rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/manager-values.yaml
 
 helm upgrade --install opensearch-data opensearch/opensearch \
   --version 3.6.0 \
   --namespace opensearch \
-  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
+  --set-string "rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/data-values.yaml
 
 helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
-  --version 3.6.0 \
+  --version 3.2.0 \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/dashboards-values.yaml
 ```
 
-The checked-in manager and data values install `repository-azure`, enable managed identity token auth, and create workload-identity service accounts when you pass the managed identity client ID with `--set-string`.
+The checked-in manager and data values install `repository-azure`, load the storage account name from the `opensearch-snapshot-settings` secret into the OpenSearch keystore, enable managed identity token auth, and create workload-identity service accounts when you pass the managed identity client ID with `--set-string`.
 Once the pods are ready, use the repository registration example in `docs/operations.md` to create the `azure-managed-identity` snapshot repository.
 
 ## Step 8: Validate the deployment

@@ -13,6 +13,8 @@ extraEnvs:
       secretKeyRef:
         name: opensearch-admin-credentials
         key: password
+  - name: AZURE_FEDERATED_TOKEN_FILE
+    value: /usr/share/opensearch/config/azure/tokens/azure-identity-token
 
 config:
   opensearch.yml: |
@@ -26,9 +28,13 @@ labels:
 rbac:
   create: true
   # Inject the managed identity client ID at install time with:
-  # --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=<client-id>
+  # --set-string "rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=<client-id>"
   serviceAccountName: "opensearch-manager-snapshots"
   automountServiceAccountToken: true
+
+keystore:
+  # Create this secret before install with key azure.client.default.account.
+  - secretName: "opensearch-snapshot-settings"
 
 plugins:
   enabled: true
@@ -70,5 +76,19 @@ sysctlInit:
 service:
   type: ClusterIP
   annotations: {}
+
+extraVolumes:
+  - name: azure-identity-token
+    projected:
+      sources:
+        - serviceAccountToken:
+            audience: api://AzureADTokenExchange
+            expirationSeconds: 3600
+            path: azure-identity-token
+
+extraVolumeMounts:
+  - name: azure-identity-token
+    mountPath: /usr/share/opensearch/config/azure/tokens
+    readOnly: true
 
 maxUnavailable: 1

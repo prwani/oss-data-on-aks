@@ -1,5 +1,7 @@
 opensearchHosts: "https://opensearch-manager:9200"
-replicaCount: 2
+# The shared AKS baseline starts with one schedulable system node, so keep the
+# default Dashboards footprint at one replica unless you also scale that pool.
+replicaCount: 1
 
 opensearchAccount:
   secret: "opensearch-dashboards-auth"

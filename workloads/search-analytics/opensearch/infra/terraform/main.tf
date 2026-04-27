@@ -176,6 +176,8 @@ resource "azurerm_federated_identity_credential" "snapshot_data" {
   issuer              = module.aks_platform.cluster_oidc_issuer_url
   parent_id           = azurerm_user_assigned_identity.snapshot[0].id
   subject             = local.snapshot_data_service_account_subject
+  # Managed identity federated credential writes must be serialized.
+  depends_on = [azurerm_federated_identity_credential.snapshot_manager]
 }
 
 resource "azurerm_role_assignment" "snapshot_container_blob_data_contributor" {

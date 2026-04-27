@@ -20,7 +20,7 @@ Operational maturity for OpenSearch should cover more than pod health.
 - validate restore into a non-production cluster before you call the design production-ready
 - keep snapshot storage permissions separate from routine user credentials
 
-The checked-in manager and data Helm values install `repository-azure` and set `azure.client.default.token_credential_type: managed_identity`. When you deploy the starter snapshot storage path, the Azure wrappers also create a user-assigned managed identity, federated credentials for the manager and data service accounts, and a least-privilege `Storage Blob Data Contributor` assignment on the snapshot container.
+The checked-in manager and data Helm values install `repository-azure`, load `azure.client.default.account` from the `opensearch-snapshot-settings` secret into the OpenSearch keystore, and keep `azure.client.default.token_credential_type: managed_identity` in `opensearch.yml`. When you deploy the starter snapshot storage path, the Azure wrappers also create a user-assigned managed identity, federated credentials for the manager and data service accounts, and a least-privilege `Storage Blob Data Contributor` assignment on the snapshot container.
 
 Example repository registration:
 

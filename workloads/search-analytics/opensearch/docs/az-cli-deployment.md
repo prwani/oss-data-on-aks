@@ -20,6 +20,7 @@ export DEPLOYMENT_NAME=opensearch-infra
 export SNAPSHOT_STORAGE_ACCOUNT=opssnapdev001
 export SNAPSHOT_CONTAINER=opensearch-snapshots
 export OPENSEARCH_HELM_VERSION=3.6.0
+export OPENSEARCH_DASHBOARDS_HELM_VERSION=3.2.0
 ```
 
 ## Option A: Bicep wrapper
@@ -101,10 +102,15 @@ kubectl create secret generic opensearch-dashboards-auth \
   --from-literal=password='<strong-admin-password>' \
   --from-literal=cookie='<32-character-cookie-secret>' \
   --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic opensearch-snapshot-settings \
+  --namespace opensearch \
+  --from-literal=azure.client.default.account="$SNAPSHOT_STORAGE_ACCOUNT" \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 Create real secrets instead of applying the example YAML files unchanged.
-The storage class manifest creates the `managed-csi-premium` class expected by the Helm values even when the AKS baseline only ships a `default` CSI class.
+The storage class manifest matches the AKS built-in `managed-csi-premium` definition, so `kubectl apply` stays safe whether the class already exists or needs to be created.
+The snapshot settings secret loads the storage account name into the OpenSearch keystore, which is required because `azure.client.default.account` is a secure setting.
 The namespace manifest uses the `privileged` Pod Security profile because the checked-in Helm values enable the chart's sysctl init container to raise `vm.max_map_count` before the OpenSearch JVM starts.
 
 ## Install manager nodes
@@ -116,7 +122,7 @@ helm repo update
 helm upgrade --install opensearch-manager opensearch/opensearch \
   --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
-  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
+  --set-string "rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/manager-values.yaml
 ```
 
@@ -126,7 +132,7 @@ helm upgrade --install opensearch-manager opensearch/opensearch \
 helm upgrade --install opensearch-data opensearch/opensearch \
   --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
-  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
+  --set-string "rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/data-values.yaml
 ```
 
@@ -134,12 +140,12 @@ helm upgrade --install opensearch-data opensearch/opensearch \
 
 ```bash
 helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
-  --version "$OPENSEARCH_HELM_VERSION" \
+  --version "$OPENSEARCH_DASHBOARDS_HELM_VERSION" \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/dashboards-values.yaml
 ```
 
-The checked-in manager and data values install `repository-azure` at pod startup, enable managed identity token auth in `opensearch.yml`, and create workload-identity service accounts when you pass the managed identity client ID with `--set-string`.
+The checked-in manager and data values install `repository-azure` at pod startup, load the storage account name from the `opensearch-snapshot-settings` secret into the OpenSearch keystore, enable managed identity token auth in `opensearch.yml`, and create workload-identity service accounts when you pass the managed identity client ID with `--set-string`.
 If your cluster cannot download plugins during pod start, bake `repository-azure` into a custom image before installing.
 
 ## Register the managed-identity snapshot repository
@@ -185,5 +191,5 @@ curl -k https://127.0.0.1:9200
 
 - keep the OpenSearch API internal by default
 - use dedicated node pools and align them to the example selectors and tolerations
-- the starter snapshot storage account disables shared-key access and the checked-in Helm values use `azure.client.default.token_credential_type: managed_identity`
+- the starter snapshot storage account disables shared-key access and the checked-in Helm values load `azure.client.default.account` from the `opensearch-snapshot-settings` secret while keeping `azure.client.default.token_credential_type: managed_identity` in `opensearch.yml`
 - the wrapper provisions the Azure side of the snapshot path, but repository registration is still a per-cluster operator step

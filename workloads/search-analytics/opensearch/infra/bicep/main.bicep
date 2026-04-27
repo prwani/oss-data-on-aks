@@ -144,6 +144,10 @@ resource snapshotDataFederatedCredential 'Microsoft.ManagedIdentity/userAssigned
     issuer: clusterOidcIssuerUrl
     subject: snapshotDataServiceAccountSubject
   }
+  // Managed identity federated credential writes must be serialized.
+  dependsOn: [
+    snapshotManagerFederatedCredential
+  ]
 }
 
 resource snapshotContainerBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deploySnapshotStorage) {

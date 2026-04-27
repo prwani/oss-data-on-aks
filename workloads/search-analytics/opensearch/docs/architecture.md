@@ -40,7 +40,7 @@ OpenSearch combines JVM memory pressure, shard placement, persistent disk needs,
 |                                                                   |
 |  OpenSearch Dashboards                                            |
 |   - Helm release: opensearch-dashboards                           |
-|   - 2 replicas                                                    |
+|   - 1 replica by default                                          |
 |   - internal Azure LoadBalancer                                   |
 +-------------------------------------------------------------------+
 ```
@@ -93,4 +93,4 @@ The OpenSearch project is steadily moving toward **cluster-manager** terminology
 | Data | 3 | 128 GiB | 4 GiB | Moderate indexing and search workloads |
 | Dashboards | 2 | none | n/a | Operator-facing UI tier |
 
-These are starting points, not target-state sizing guidance. Increase disk, memory, and node pool size based on shard count, retention, query latency, and indexing profile.
+These are starting points, not target-state sizing guidance. Increase disk, memory, and node pool size based on shard count, retention, query latency, and indexing profile. If you want more than one Dashboards replica, scale the system/app pool or move Dashboards onto its own schedulable pool first.

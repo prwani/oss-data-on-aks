@@ -71,7 +71,7 @@ These are the repo-backed versions this walkthrough currently matches.
 | Component | Checked-in version | Evidence in repo |
 | --- | --- | --- |
 | Manager and data charts | `opensearch/opensearch` `3.6.0` | `workloads/search-analytics/opensearch/kubernetes/helm/README.md` |
-| Dashboards chart | `opensearch/opensearch-dashboards` `3.6.0` | `workloads/search-analytics/opensearch/kubernetes/helm/README.md` |
+| Dashboards chart | `opensearch/opensearch-dashboards` `3.2.0` | `workloads/search-analytics/opensearch/kubernetes/helm/README.md` |
 
 The checked-in values intentionally inherit runtime images from those chart defaults, so the chart version is the most concrete repo-backed contract to revalidate before publication.
 
@@ -120,7 +120,7 @@ This repo keeps both IaC options visible because different teams standardize dif
 ### Bicep path
 
 ```bash
-export LOCATION=eastus
+export LOCATION=swedencentral
 export RESOURCE_GROUP=rg-opensearch-aks-dev
 export CLUSTER_NAME=aks-opensearch-dev
 export SNAPSHOT_STORAGE_ACCOUNT=opssnapdev001
@@ -174,6 +174,7 @@ The blueprint ships example secret manifests for:
 
 - the initial OpenSearch admin password
 - the Dashboards username, password, and cookie secret
+- the snapshot storage account name that the Azure repository plugin loads into the OpenSearch keystore
 
 Treat those YAML files as templates only. Create real secrets instead of applying the example manifests unchanged:
 
@@ -189,6 +190,11 @@ kubectl create secret generic opensearch-dashboards-auth \
   --from-literal=password='<strong-admin-password>' \
   --from-literal=cookie='<32-character-cookie-secret>' \
   --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl create secret generic opensearch-snapshot-settings \
+  --namespace opensearch \
+  --from-literal=azure.client.default.account="$SNAPSHOT_STORAGE_ACCOUNT" \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ## Step 4: Install the manager tier
@@ -197,6 +203,7 @@ This blueprint uses a separate release for manager nodes. The surrounding docs u
 
 ```bash
 export OPENSEARCH_HELM_VERSION=3.6.0
+export OPENSEARCH_DASHBOARDS_HELM_VERSION=3.2.0
 export SNAPSHOT_IDENTITY_CLIENT_ID=<snapshot-managed-identity-client-id>
 
 helm repo add opensearch https://opensearch-project.github.io/helm-charts/
@@ -205,7 +212,7 @@ helm repo update
 helm upgrade --install opensearch-manager opensearch/opensearch \
   --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
-  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
+  --set-string "rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/manager-values.yaml
 ```
 
@@ -225,7 +232,7 @@ The data release joins the same cluster and points back to the manager service f
 helm upgrade --install opensearch-data opensearch/opensearch \
   --version "$OPENSEARCH_HELM_VERSION" \
   --namespace opensearch \
-  --set-string rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id="$SNAPSHOT_IDENTITY_CLIENT_ID" \
+  --set-string "rbac.serviceAccountAnnotations.azure\\.workload\\.identity/client-id=$SNAPSHOT_IDENTITY_CLIENT_ID" \
   --values workloads/search-analytics/opensearch/kubernetes/helm/data-values.yaml
 ```
 
@@ -235,7 +242,7 @@ The data values raise storage and JVM sizing relative to the manager tier and ar
 
 ```bash
 helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
-  --version "$OPENSEARCH_HELM_VERSION" \
+  --version "$OPENSEARCH_DASHBOARDS_HELM_VERSION" \
   --namespace opensearch \
   --values workloads/search-analytics/opensearch/kubernetes/helm/dashboards-values.yaml
 ```
@@ -267,6 +274,20 @@ kubectl port-forward svc/opensearch-manager 9200:9200 -n opensearch
 curl -k https://127.0.0.1:9200
 ```
 
+If you deployed the starter snapshot storage path, register and verify the Azure Blob repository after the cluster is healthy:
+
+```bash
+export SNAPSHOT_CONTAINER=opensearch-snapshots
+
+curl -k -u "admin:<your-admin-password>" \
+  -XPUT https://127.0.0.1:9200/_snapshot/azure-managed-identity \
+  -H 'Content-Type: application/json' \
+  -d "{\"type\":\"azure\",\"settings\":{\"client\":\"default\",\"container\":\"$SNAPSHOT_CONTAINER\"}}"
+
+curl -k -u "admin:<your-admin-password>" \
+  -XPOST https://127.0.0.1:9200/_snapshot/azure-managed-identity/_verify?pretty
+```
+
 ## Why I like this starting pattern
 
 It gives teams a cleaner path than an all-in-one Helm demo:
@@ -276,6 +297,57 @@ It gives teams a cleaner path than an all-in-one Helm demo:
 - storage and access choices are visible in source control
 - the same repo supports portal-first and CLI-first operators
 - the implementation assets are close enough to the blog content that they can evolve together
+
+## Try a few OpenSearch API calls
+
+The OpenSearch documentation has a good [Search data](https://docs.opensearch.org/latest/getting-started/search-data/) walkthrough that introduces query string queries and Query DSL. After the AKS deployment is healthy, you can run the same style of examples against your cluster through the port-forwarded manager service.
+
+First, load a small sample data set:
+
+```bash
+kubectl port-forward svc/opensearch-manager 9200:9200 -n opensearch
+
+curl -k -u "admin:<your-admin-password>" \
+  -XDELETE https://127.0.0.1:9200/students
+
+curl -k -u "admin:<your-admin-password>" \
+  -XPOST "https://127.0.0.1:9200/_bulk?refresh=true" \
+  -H 'Content-Type: application/x-ndjson' \
+  --data-binary @- <<'EOF'
+{ "create": { "_index": "students", "_id": "1" } }
+{ "name": "John Doe", "gpa": 3.89, "grad_year": 2022}
+{ "create": { "_index": "students", "_id": "2" } }
+{ "name": "Jonathan Powers", "gpa": 3.85, "grad_year": 2025 }
+{ "create": { "_index": "students", "_id": "3" } }
+{ "name": "Jane Doe", "gpa": 3.52, "grad_year": 2024 }
+EOF
+```
+
+Then try a few searches:
+
+```bash
+# Retrieve all documents.
+curl -k -u "admin:<your-admin-password>" \
+  https://127.0.0.1:9200/students/_search?pretty
+
+# Use a query string query.
+curl -k -u "admin:<your-admin-password>" \
+  "https://127.0.0.1:9200/students/_search?q=name:john&pretty"
+
+# Use Query DSL full-text search.
+curl -k -u "admin:<your-admin-password>" \
+  -XGET https://127.0.0.1:9200/students/_search?pretty \
+  -H 'Content-Type: application/json' \
+  -d '{"query":{"match":{"name":"doe john"}}}'
+
+# Use exact-value and range filters.
+curl -k -u "admin:<your-admin-password>" \
+  -XGET https://127.0.0.1:9200/students/_search?pretty \
+  -H 'Content-Type: application/json' \
+  -d '{"query":{"bool":{"must":[{"match":{"name":"doe"}},{"range":{"gpa":{"gte":3.6,"lte":3.9}}},{"term":{"grad_year":2022}}]}}}'
+```
+
+Those examples are intentionally small, but they prove that indexing, search, full-text analysis, exact filters, and range filters are working through the internal OpenSearch API. After you have data in the cluster, use the [OpenSearch Dashboards quickstart](https://docs.opensearch.org/latest/dashboards/quickstart/) to explore it visually in Dashboards.
 
 ## What comes next
 
