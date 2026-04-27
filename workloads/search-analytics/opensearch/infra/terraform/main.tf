@@ -123,23 +123,12 @@ resource "azapi_resource" "snapshot_storage" {
   }
 }
 
-resource "azapi_resource" "snapshot_blob_service" {
-  count = var.deploy_snapshot_storage ? 1 : 0
-
-  type      = "Microsoft.Storage/storageAccounts/blobServices@2023-05-01"
-  name      = "default"
-  parent_id = azapi_resource.snapshot_storage[0].id
-  body = {
-    properties = {}
-  }
-}
-
 resource "azapi_resource" "snapshot_container" {
   count = var.deploy_snapshot_storage ? 1 : 0
 
   type      = "Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01"
   name      = var.snapshot_container_name
-  parent_id = azapi_resource.snapshot_blob_service[0].id
+  parent_id = "${azapi_resource.snapshot_storage[0].id}/blobServices/default"
   body = {
     properties = {
       publicAccess = "None"

@@ -113,6 +113,20 @@ Before you start, make sure you have:
 - Terraform 1.11+ if you want the Terraform path
 - a globally unique storage account name if you want to create snapshot storage from the example wrappers
 
+## Pick your deployment experience
+
+If you want to start from the Azure portal, use this button to deploy the Azure baseline for the blueprint:
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy.json)
+
+The portal flow creates the AKS cluster, dedicated node pools, snapshot storage account, managed identity, and federated credentials. After the portal deployment completes, continue with Step 2 below to install OpenSearch and Dashboards.
+
+If you want one command to run the full workflow, use the helper script. It asks for the deployment engine, resource group, region, cluster name, storage account, and admin password, then runs the Azure deployment plus the Kubernetes, Helm, validation, and snapshot repository steps:
+
+```bash
+workloads/search-analytics/opensearch/scripts/az-cli/deploy.sh
+```
+
 ## Step 1: Deploy or align the AKS baseline
 
 This repo keeps both IaC options visible because different teams standardize differently.
@@ -143,6 +157,9 @@ az deployment group create \
 ```bash
 cd workloads/search-analytics/opensearch/infra/terraform
 cp terraform.tfvars.example terraform.tfvars
+
+# Edit terraform.tfvars for your resource group, region, cluster name,
+# and globally unique snapshot storage account name.
 
 terraform init
 terraform plan

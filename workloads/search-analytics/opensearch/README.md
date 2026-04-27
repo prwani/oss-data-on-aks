@@ -61,8 +61,22 @@ The first two figures below are official OpenSearch diagrams that explain the lo
 - `infra/terraform/terraform.tfvars.example`
 - `infra/bicep/main.bicep`
 - `infra/bicep/main.bicepparam`
+- `infra/portal/azuredeploy.json`
+- `scripts/az-cli/deploy.sh`
 - `kubernetes/helm`
 - `kubernetes/manifests`
+
+## Deployment shortcuts
+
+Use the portal button when you want Azure to prompt for baseline values and create the AKS, node pool, snapshot storage, and workload identity resources:
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy.json)
+
+Use the one-command script when you want the full end-to-end flow, including Kubernetes namespace bootstrap, secrets, Helm releases, readiness checks, and snapshot repository verification:
+
+```bash
+workloads/search-analytics/opensearch/scripts/az-cli/deploy.sh
+```
 
 ## Standard release names
 
