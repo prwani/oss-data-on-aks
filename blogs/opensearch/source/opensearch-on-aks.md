@@ -254,6 +254,22 @@ The Dashboards values do two important things:
 
 That is a much better default than exposing the OpenSearch API publicly.
 
+To find the internal Dashboards URL, check the service after Azure assigns the private load balancer IP:
+
+```bash
+kubectl get svc opensearch-dashboards -n opensearch
+```
+
+From a network path that can reach the AKS virtual network, open `http://<dashboards-internal-ip>:5601`. If you are testing from your workstation and do not have private network connectivity to that internal IP, use port-forward instead:
+
+```bash
+kubectl port-forward svc/opensearch-dashboards 5601:5601 -n opensearch
+```
+
+Then open `http://127.0.0.1:5601`.
+
+The default username in this walkthrough is `admin`. The password is the same value you used for `<strong-admin-password>` when creating both `opensearch-admin-credentials` and `opensearch-dashboards-auth` in Step 3.
+
 ## Step 7: Validate the deployment
 
 At minimum, validate the pod set, PVC bindings, and service shape:
