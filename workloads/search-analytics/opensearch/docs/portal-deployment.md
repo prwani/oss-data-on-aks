@@ -8,13 +8,13 @@ If you want the portal to run the full deployment, use the checked-in full templ
 
 The full template asks for an OpenSearch admin password, accepts optional resource tags for Azure resources, deploys the Azure baseline, and then uses an Azure deployment script to run the Kubernetes namespace, secret, Helm, readiness, and snapshot repository steps. If you only want the Azure baseline and prefer to run the Kubernetes and Helm steps yourself, use `infra/portal/azuredeploy.json`.
 
-For a private AKS API server with the same one-click experience, use the secure template:
+For a private AKS API server and keyless operator bootstrap, use the secure template:
 
 [![Deploy to Azure (secure)](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-secure.json)
 
-The secure template accepts the same optional resource tags and creates the VNet, AKS subnet, and Azure Container Instances subnet used by the deployment script. That VNet-integrated script is what allows the portal deployment to continue running `kubectl` and Helm after the AKS API server is private.
+The secure template accepts the same optional resource tags and creates a private AKS baseline with a VNet, AKS subnet, workload identity, keyless snapshot storage, and optional Azure Bastion. It does not use Azure Deployment Scripts, so it works in environments where storage account key access is disabled. Use the deployment outputs to connect with `az aks bastion`, then run the Kubernetes and Helm bootstrap commands from a private AKS API tunnel.
 
-The secure template also includes a demo-only `exposePublicEndpoints` parameter. Leave it `false` for the private default. If you set it to `true`, the install script publishes both Dashboards and the OpenSearch manager service through public Azure Load Balancers so the blog sample API calls can run from a laptop without VPN or Bastion. This exposes the full authenticated OpenSearch API surface on port `9200`, not only the sample paths.
+The secure template can deploy Azure Bastion Standard with native client tunneling enabled. If you use an existing Bastion host instead, set `deployBastion` to `false` and pass that existing Bastion resource ID when running `az aks bastion`.
 
 ## Outcome
 
@@ -25,7 +25,7 @@ You should end with:
 - an `opensearch` namespace
 - Helm releases for manager nodes, data nodes, and Dashboards
 - internal operator access to Dashboards and private API access to OpenSearch
-- optional demo public endpoints for Dashboards and OpenSearch manager API when `exposePublicEndpoints` is enabled
+- private AKS API access through Azure Bastion native client tunneling
 - an optional Azure Blob snapshot target wired for managed-identity access instead of storage keys
 
 ## Step 1: Review the blueprint assets
@@ -100,6 +100,8 @@ az aks get-credentials \
   --name aks-opensearch-dev
 ```
 
+For a private AKS API, use the secure template's `aksBastionCommand` output to open the Azure Bastion tunnel before running `kubectl` or Helm. Keep the temporary Bastion kubeconfig active, and if tunnel commands intermittently time out, set `GODEBUG=http2client=0` and retry with a fresh tunnel.
+
 ## Step 6: Create the storage class, namespace, and secrets
 
 Apply the Premium storage class manifest, then the namespace, and then create real secrets:
@@ -107,18 +109,19 @@ Apply the Premium storage class manifest, then the namespace, and then create re
 ```bash
 export SNAPSHOT_IDENTITY_CLIENT_ID=<managed-identity-client-id>
 export SNAPSHOT_STORAGE_ACCOUNT=<snapshot-storage-account-name>
+export OPENSEARCH_ADMIN_PASSWORD='<strong-admin-password>'
 
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/managed-csi-premium-storageclass.yaml
 kubectl apply -f workloads/search-analytics/opensearch/kubernetes/manifests/namespace.yaml
 kubectl create secret generic opensearch-admin-credentials \
   --namespace opensearch \
-  --from-literal=password='<strong-admin-password>' \
+  --from-literal=password="$OPENSEARCH_ADMIN_PASSWORD" \
   --dry-run=client -o yaml | kubectl apply -f -
 export DASHBOARDS_COOKIE_SECRET="$(openssl rand -hex 16)"
 kubectl create secret generic opensearch-dashboards-auth \
   --namespace opensearch \
   --from-literal=username='admin' \
-  --from-literal=password='<strong-admin-password>' \
+  --from-literal=password="$OPENSEARCH_ADMIN_PASSWORD" \
   --from-literal=cookie="$DASHBOARDS_COOKIE_SECRET" \
   --dry-run=client -o yaml | kubectl apply -f -
 kubectl create secret generic opensearch-snapshot-settings \
@@ -128,6 +131,7 @@ kubectl create secret generic opensearch-snapshot-settings \
 ```
 
 Create real secrets instead of applying the example YAML files unchanged.
+Keep `OPENSEARCH_ADMIN_PASSWORD` stable across retries. After the OpenSearch security index is initialized, changing only the Kubernetes Secret does not rotate the internal `admin` password.
 The storage class manifest matches the AKS built-in `managed-csi-premium` definition, so `kubectl apply` stays safe whether the class already exists or needs to be created.
 The snapshot settings secret loads the storage account name into the OpenSearch keystore, which is required because `azure.client.default.account` is a secure setting.
 The namespace manifest uses the `privileged` Pod Security profile because the checked-in Helm values enable the chart's sysctl init container to raise `vm.max_map_count` before the OpenSearch JVM starts.
@@ -180,5 +184,5 @@ Check for:
 - confirm the `osmgr` and `osdata` pools have the expected VM size and disk profile
 - confirm the AKS region supports the storage and zoning decisions you chose
 - confirm the Dashboards load balancer is internal-only
-- if `exposePublicEndpoints` was enabled for a demo, confirm that both public Load Balancers are removed or changed back to internal after validation
+- confirm the secure path uses Bastion or another private network route instead of public AKS or OpenSearch endpoints
 - confirm shared-key access stays disabled on the snapshot storage account and that the managed identity is scoped to the snapshot container

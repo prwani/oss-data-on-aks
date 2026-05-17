@@ -53,7 +53,7 @@ The first two figures below are official OpenSearch diagrams that explain the lo
 
 ![Secure OpenSearch-on-AKS architecture](../../../blogs/opensearch/assets/opensearch-on-aks-secure-architecture.svg)
 
-*Secure deployment mapping using Microsoft Azure Architecture Icons. It highlights the private AKS API, deployment script subnet, internal Dashboards load balancer, workload identity to Blob snapshots, and encrypted persistent disks.*
+*Secure deployment mapping using Microsoft Azure Architecture Icons. It highlights the private AKS API, internal Dashboards load balancer, workload identity to Blob snapshots, and encrypted persistent disks.*
 
 ## Blueprint contents
 
@@ -71,6 +71,7 @@ The first two figures below are official OpenSearch diagrams that explain the lo
 - `infra/portal/full-deploy.bicep`
 - `infra/portal/secure-full-deploy.bicep`
 - `scripts/az-cli/deploy.sh`
+- `samples/store-search`
 - `kubernetes/helm`
 - `kubernetes/manifests`
 
@@ -82,11 +83,11 @@ Use the portal button when you want Azure to prompt for values and run the full 
 
 The full portal template asks for an OpenSearch admin password and passes it to an Azure deployment script as a secure parameter. If you only want the Azure baseline and prefer to run the Kubernetes and Helm steps yourself, use `infra/portal/azuredeploy.json`.
 
-Use the secure portal button when you also want a private AKS control plane. It creates a VNet, private AKS API server, and VNet-integrated deployment script subnet so the portal-run script can still reach the private API:
+Use the secure portal button when you also want a private AKS control plane. It creates a VNet, private AKS API server, keyless snapshot storage, and optional Azure Bastion for private AKS API access:
 
 [![Deploy to Azure (secure)](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-secure.json)
 
-For short-lived demos, the secure portal template includes `exposePublicEndpoints`. Keep it `false` for the private default. If set to `true`, Dashboards and the OpenSearch manager API are published through public Azure Load Balancers. This exposes all authenticated OpenSearch APIs on port `9200`, not only sample API paths.
+After the secure portal deployment, use `az aks bastion` from the deployment output to open a private AKS API tunnel, then run the Kubernetes, Helm, and store-search sample steps from the docs.
 
 Use the one-command script when you want the full end-to-end flow, including Kubernetes namespace bootstrap, secrets, Helm releases, readiness checks, and snapshot repository verification:
 

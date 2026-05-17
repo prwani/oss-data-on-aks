@@ -84,11 +84,11 @@ For the first opinionated OpenSearch blueprint in this repo, I am using this sta
 
 *Custom AKS mapping for this repository. It combines OpenSearch cluster roles, shard/replica behavior, dedicated AKS node pools, StatefulSets, and per-pod PVC-backed Azure Disks.*
 
-The secure portal deployment keeps the same OpenSearch topology but adds a private AKS control plane and runs the Azure deployment script inside the VNet so the portal flow can still install the Kubernetes and Helm resources:
+The secure portal deployment keeps the same OpenSearch topology but adds a private AKS control plane and an Azure Bastion-based operator access path for the Kubernetes and Helm steps:
 
 ![Secure OpenSearch-on-AKS architecture](../assets/opensearch-on-aks-secure-architecture.svg)
 
-*Secure deployment mapping using Microsoft Azure Architecture Icons. It highlights the private AKS API, deployment script subnet, internal Dashboards load balancer, workload identity to Blob snapshots, and encrypted persistent disks.*
+*Secure deployment mapping using Microsoft Azure Architecture Icons. It highlights the private AKS API, internal Dashboards load balancer, workload identity to Blob snapshots, and encrypted persistent disks.*
 
 | Layer | Recommendation | Why |
 | --- | --- | --- |
@@ -127,13 +127,11 @@ If you want the Azure portal to run the full seven-step standard flow, use this 
 
 The full portal deployment asks for an admin password and optional resource tags, creates the AKS cluster, dedicated node pools, snapshot storage account, managed identity, and federated credentials, then uses an Azure deployment script to run the Kubernetes namespace, secret, Helm, readiness, and snapshot repository steps. The password is passed to the deployment script as a secure parameter and is used to create the OpenSearch and Dashboards Kubernetes secrets.
 
-For a private AKS control plane, use the secure portal deployment:
+For a private AKS control plane, use the secure portal deployment. This path creates the private Azure baseline and optional Azure Bastion access, then expects you to run the Kubernetes and Helm steps from a Bastion-backed private AKS API tunnel:
 
 [![Deploy to Azure (secure)](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-secure.json)
 
-The secure template accepts the same optional resource tags, creates a VNet, places AKS nodes in a private subnet, disables public AKS API access, and runs the installation script from an Azure Container Instances subnet inside the same VNet so `kubectl` and Helm can reach the private API server.
-
-For short-lived demos where your laptop must reach the examples without VPN or Bastion, the secure template also has an `exposePublicEndpoints` parameter. Keep it `false` for the private default. If you set it to `true`, the template publishes Dashboards and the OpenSearch manager service through public Azure Load Balancers. That is convenient for the sample calls later in this post, but it exposes **all authenticated OpenSearch APIs** on port `9200`, not only the sample paths, so do not use it as a production hardening pattern.
+The secure template accepts the same optional resource tags, creates a VNet, places AKS nodes in a private subnet, disables public AKS API access, and avoids Azure deployment scripts so it stays compatible with environments that block storage account key access. The detailed secure operator flow is covered in Part 2.
 
 If you only want the Azure baseline and prefer to run the Kubernetes and Helm steps yourself, use the baseline template at `workloads/search-analytics/opensearch/infra/portal/azuredeploy.json` instead.
 
@@ -360,17 +358,13 @@ It gives teams a cleaner path than an all-in-one Helm demo:
 
 ## Try a few OpenSearch API calls
 
-The OpenSearch documentation has a good [Search data](https://docs.opensearch.org/latest/getting-started/search-data/) walkthrough that introduces query string queries and Query DSL. After the AKS deployment is healthy, you can run the same style of examples against your cluster through the port-forwarded manager service, or through the secure portal template's demo-only public endpoint if you enabled `exposePublicEndpoints`.
+The OpenSearch documentation has a good [Search data](https://docs.opensearch.org/latest/getting-started/search-data/) walkthrough that introduces query string queries and Query DSL. After the AKS deployment is healthy, you can run the same style of examples against your cluster through the port-forwarded manager service.
 
 First, load a small sample data set:
 
 ```bash
 kubectl port-forward svc/opensearch-manager 9200:9200 -n opensearch
 export OPENSEARCH_URL=https://127.0.0.1:9200
-
-# If you enabled exposePublicEndpoints in the secure portal template, skip the
-# port-forward and use the public OpenSearch API URL from the deployment output:
-# export OPENSEARCH_URL=https://<opensearch-public-ip>:9200
 
 curl -k -u "admin:<your-admin-password>" \
   -XDELETE "${OPENSEARCH_URL}/students"

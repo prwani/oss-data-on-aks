@@ -1,0 +1,418 @@
+<h1>OpenSearch on AKS, Part 2: Private Access with Azure Bastion and a Store Search App</h1>
+
+<p><em>Co-authored by Chetan Vaja (Senior Cloud Solution Architect @ Microsoft), Ninad Kapse (Senior Cloud Solution Architect @ Microsoft), Vikas Gautam (Senior Cloud Solution Architect @ Microsoft), and Prafulla Wani (Principal Cloud Solution Architect @ Microsoft).</em></p>
+
+<h2>Summary</h2>
+
+<p><a href="PART-1-LINK">Part 1</a> walked through a starter blueprint for getting OpenSearch running on Azure Kubernetes Service (AKS) with an AKS Azure Verified Modules (AVM) baseline, dedicated manager and data tiers, internal Dashboards access, ClusterIP-only OpenSearch API access, and keyless Azure Blob snapshot storage.</p>
+
+<p>This follow-up intentionally starts where that post stops. Instead of repeating the AKS and Helm deployment walkthrough, Part 2 focuses on the next question platform teams usually ask: how should this look when OpenSearch is treated as a private search platform behind an application, not as an endpoint that users or client applications call directly?</p>
+
+<p>The pattern covered here uses a private AKS API, Azure Bastion native client tunneling for operator access, OpenSearch kept private inside the cluster, and a small store search app that calls OpenSearch from inside AKS. The sample is deliberately simple, but the boundary is the important part: users reach the application; the application reaches OpenSearch.</p>
+
+<h2>What changes after Part 1?</h2>
+
+<p>Part 1 proves the foundation:</p>
+
+<ul>
+  <li>OpenSearch manager and data pods are running as StatefulSets.</li>
+  <li>PersistentVolumeClaims are bound to Azure Disk-backed storage.</li>
+  <li>Dashboards is reachable through an internal-only path.</li>
+  <li>The OpenSearch API is validated without making it public.</li>
+  <li>Azure Blob snapshots use workload identity instead of storage account keys.</li>
+</ul>
+
+<p>That is enough for a clean starter deployment. It is not yet the application-facing pattern most teams want to operate. In a real environment, OpenSearch is usually a backing service. Search requests should pass through an application tier that owns request validation, user experience, authorization, throttling, result shaping, and future API gateway or ingress decisions.</p>
+
+<p>This post therefore avoids re-covering the Part 1 deployment steps and adds two things:</p>
+
+<ul>
+  <li>a private operator access path to a private AKS control plane by using Azure Bastion; and</li>
+  <li>a small store search application that demonstrates how application code should talk to a private OpenSearch service from inside the cluster.</li>
+</ul>
+
+<h2>Target architecture for Part 2</h2>
+
+<p>The secure flow looks like this:</p>
+
+<pre><code>operator workstation
+  -&gt; Azure Bastion native client tunnel
+    -&gt; private AKS API
+      -&gt; kubectl and Helm operations
+
+browser or test client
+  -&gt; store-search app
+    -&gt; private OpenSearch ClusterIP service
+      -&gt; manager and data StatefulSets with PVC-backed Azure Disks
+</code></pre>
+
+<p>The access boundaries are explicit:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Surface</th>
+      <th>Recommended exposure</th>
+      <th>Why</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AKS API server</td>
+      <td>Private</td>
+      <td>Keeps cluster administration off the public internet.</td>
+    </tr>
+    <tr>
+      <td>Operator access</td>
+      <td>Azure Bastion native client tunnel</td>
+      <td>Lets operators run kubectl and Helm from their workstation without a public AKS API or jumpbox VM.</td>
+    </tr>
+    <tr>
+      <td>OpenSearch API</td>
+      <td>ClusterIP</td>
+      <td>Keeps the core search API inside Kubernetes.</td>
+    </tr>
+    <tr>
+      <td>OpenSearch Dashboards</td>
+      <td>Internal-only operator path</td>
+      <td>Supports administration and exploration without publishing the OpenSearch API.</td>
+    </tr>
+    <tr>
+      <td>Store search app</td>
+      <td>Application-owned surface</td>
+      <td>Demonstrates the user-facing pattern while OpenSearch remains private.</td>
+    </tr>
+    <tr>
+      <td>Snapshots</td>
+      <td>Azure Blob Storage with workload identity</td>
+      <td>Avoids storage account keys and provides an external recovery target.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The reference implementation assets for this post are in the companion repo: <a href="https://github.com/prwani/oss-data-on-aks">github.com/prwani/oss-data-on-aks</a>.</p>
+
+<h2>Why Azure Bastion is useful here</h2>
+
+<p>A private AKS API is a good security boundary, but it changes day-to-day operations. If your workstation cannot reach the private endpoint, normal <code>kubectl</code> and Helm commands cannot reach the cluster.</p>
+
+<p>Azure Bastion native client tunneling provides a practical operator path:</p>
+
+<ul>
+  <li>The AKS API stays private.</li>
+  <li>Operators do not need to publish the AKS control plane.</li>
+  <li>Operators do not need to maintain a jumpbox VM just to run Kubernetes commands.</li>
+  <li>The same Kubernetes and Helm steps from Part 1 can run through the tunnel.</li>
+</ul>
+
+<p>It is important to be precise about what Bastion does and does not do. Bastion gives the operator a private network path to the AKS API. It does not install OpenSearch, create Kubernetes secrets, run Helm charts, seed sample data, or operate the cluster for you. Those remain operator-owned steps, which is usually what platform teams want for a controlled deployment.</p>
+
+<h2>Prerequisites</h2>
+
+<p>This post assumes you already understand the Part 1 baseline and have the standard local tools installed:</p>
+
+<ul>
+  <li>Azure CLI, signed in to the target subscription.</li>
+  <li><code>kubectl</code>.</li>
+  <li>Helm 3.x.</li>
+  <li><code>git</code>.</li>
+  <li><code>openssl</code> for local secret generation.</li>
+  <li>An Azure Container Registry (ACR) if you want to build and publish the store search sample image.</li>
+</ul>
+
+<p>For the private access path, you also need Azure Bastion Standard or Premium with native client tunneling enabled. The secure portal template in the repo can create Bastion for the AKS virtual network, or you can use an existing Bastion host in a reachable peered virtual network.</p>
+
+<h2>Deploy the secure baseline</h2>
+
+<p>If you used the standard baseline from Part 1, the Kubernetes and Helm parts of the OpenSearch deployment are the same. For the private-control-plane pattern, use the secure portal template in the repo:</p>
+
+<p><a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-secure.json"><img src="https://aka.ms/deploytoazurebutton" alt="Deploy to Azure"></a></p>
+
+<p>The secure template creates the private AKS baseline and optional Azure Bastion resources. It intentionally does not use Azure Deployment Scripts. That keeps this flow aligned with environments that disable storage account shared-key access, because the OpenSearch snapshot path is managed identity based.</p>
+
+<p>After the deployment completes, open the deployment outputs and capture these values:</p>
+
+<ul>
+  <li><code>deployedClusterName</code></li>
+  <li><code>deployedSnapshotStorageAccount</code></li>
+  <li><code>snapshotManagedIdentityClientId</code></li>
+  <li><code>bastionResourceId</code></li>
+  <li><code>getCredentialsCommand</code></li>
+  <li><code>aksBastionCommand</code></li>
+</ul>
+
+<p>The outputs are there so portal-first operators do not need to reverse-engineer resource names before moving to the Kubernetes steps.</p>
+
+<h2>Connect to the private AKS API</h2>
+
+<p>Get the private cluster credentials first. Use the output command from the deployment or run the command manually:</p>
+
+<pre><code class="language-bash">export RESOURCE_GROUP=&lt;resource-group-name&gt;
+export CLUSTER_NAME=&lt;deployedClusterName&gt;
+export BASTION_RESOURCE_ID=&lt;bastionResourceId&gt;
+
+az aks get-credentials \
+  --admin \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$CLUSTER_NAME"
+</code></pre>
+
+<p>Then open the Bastion tunnel to the private AKS API:</p>
+
+<pre><code class="language-bash">az aks bastion \
+  --admin \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$CLUSTER_NAME" \
+  --bastion "$BASTION_RESOURCE_ID"
+</code></pre>
+
+<p>Keep that terminal running. In a second terminal, point your kubeconfig at the local tunnel port and verify access:</p>
+
+<pre><code class="language-bash">export BASTION_PORT="$(ps aux | sed -n 's/.*--port \([0-9]*\).*/\1/p' | head -1)"
+sed -i "s|server: https://.*|server: https://localhost:${BASTION_PORT}|" "$KUBECONFIG"
+
+export GODEBUG=http2client=0
+kubectl get nodes
+</code></pre>
+
+<p>The <code>GODEBUG=http2client=0</code> setting can help avoid intermittent HTTP/2 behavior through the local tunnel. Keep the same kubeconfig and environment active while you run the Kubernetes and Helm commands.</p>
+
+<h2>Install OpenSearch through the private path</h2>
+
+<p>At this point, you do not need a new OpenSearch installation model. Use the namespace, secret, Helm, validation, Dashboards, and snapshot repository steps from Part 1 through the Bastion-backed AKS API connection.</p>
+
+<p>Use the secure deployment outputs for the snapshot values:</p>
+
+<pre><code class="language-bash">export SNAPSHOT_STORAGE_ACCOUNT=&lt;deployedSnapshotStorageAccount&gt;
+export SNAPSHOT_IDENTITY_CLIENT_ID=&lt;snapshotManagedIdentityClientId&gt;
+</code></pre>
+
+<p>Then follow the same release names used in Part 1:</p>
+
+<ul>
+  <li><code>opensearch-manager</code></li>
+  <li><code>opensearch-data</code></li>
+  <li><code>opensearch-dashboards</code></li>
+</ul>
+
+<p>That reuse is intentional. Part 2 changes the access posture and adds an application tier; it does not introduce a second OpenSearch topology.</p>
+
+<h2>Why add an app instead of more API calls?</h2>
+
+<p>Part 1 ends with API and Dashboards validation. That is the right place to stop for a baseline post because those checks prove the cluster can index, search, and serve Dashboards without public API exposure.</p>
+
+<p>Part 2 moves one layer up. The store search app shows a more realistic operating model:</p>
+
+<pre><code>browser
+  -&gt; store-search service
+    -&gt; https://opensearch-manager.opensearch.svc.cluster.local:9200
+</code></pre>
+
+<p>The sample app indexes a small product catalog and exposes two application endpoints:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Endpoint</th>
+      <th>Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>POST /api/seed</code></td>
+      <td>Creates the product index and loads the demo catalog.</td>
+    </tr>
+    <tr>
+      <td><code>GET /api/search?q=&lt;term&gt;&amp;category=&lt;category&gt;</code></td>
+      <td>Runs a multi-field OpenSearch query with an optional category filter.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The application uses the internal OpenSearch service name:</p>
+
+<pre><code>https://opensearch-manager.opensearch.svc.cluster.local:9200</code></pre>
+
+<p>That service name only resolves inside the Kubernetes cluster. This is the core pattern: OpenSearch remains a private backing service, while the application becomes the surface you can later expose through an ingress, internal load balancer, API gateway, or private endpoint pattern that fits your organization.</p>
+
+<h2>Build and publish the store search image</h2>
+
+<p>Clone the repo if you have not already:</p>
+
+<pre><code class="language-bash">git clone https://github.com/prwani/oss-data-on-aks.git
+cd oss-data-on-aks
+</code></pre>
+
+<p>Build the sample into an Azure Container Registry that your AKS cluster can pull from:</p>
+
+<pre><code class="language-bash">export ACR_NAME=&lt;acr-name&gt;
+export STORE_SEARCH_IMAGE="${ACR_NAME}.azurecr.io/store-search:0.1.0"
+
+az acr build \
+  --registry "$ACR_NAME" \
+  --image store-search:0.1.0 \
+  workloads/search-analytics/opensearch/samples/store-search
+</code></pre>
+
+<p>Update the image reference in the sample manifest:</p>
+
+<pre><code>workloads/search-analytics/opensearch/samples/store-search/kubernetes/store-search.yaml</code></pre>
+
+<p>Change:</p>
+
+<pre><code>&lt;acr-name&gt;.azurecr.io/store-search:0.1.0</code></pre>
+
+<p>to the image name you built.</p>
+
+<h2>Deploy the app</h2>
+
+<p>Create a Kubernetes secret for the app. Use the same OpenSearch admin password that initialized the OpenSearch security index during Part 1.</p>
+
+<pre><code class="language-bash">export OPENSEARCH_ADMIN_PASSWORD='&lt;strong-admin-password&gt;'
+
+kubectl create namespace store-search --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl create secret generic store-search-opensearch \
+  --namespace store-search \
+  --from-literal=username='admin' \
+  --from-literal=password="$OPENSEARCH_ADMIN_PASSWORD" \
+  --dry-run=client -o yaml | kubectl apply -f -
+</code></pre>
+
+<p>Use the same password value for retries. Reapplying this Kubernetes secret with a different value does not rotate the internal OpenSearch <code>admin</code> password after the security index has already been initialized.</p>
+
+<p>Apply the workload manifest and wait for the rollout:</p>
+
+<pre><code class="language-bash">kubectl apply -f workloads/search-analytics/opensearch/samples/store-search/kubernetes/store-search.yaml
+kubectl rollout status deploy/store-search -n store-search --timeout=300s
+</code></pre>
+
+<p>The sample deployment keeps the app service as <code>ClusterIP</code>. That is deliberate for this walkthrough. We can validate the application behavior with port-forward first, then decide separately how the application should be exposed in a real environment.</p>
+
+<h2>Test the app</h2>
+
+<p>Port-forward the app service:</p>
+
+<pre><code class="language-bash">export GODEBUG=http2client=0
+kubectl port-forward svc/store-search 8080:80 -n store-search
+</code></pre>
+
+<p>In another terminal, seed the product catalog:</p>
+
+<pre><code class="language-bash">curl -s -X POST http://127.0.0.1:8080/api/seed
+</code></pre>
+
+<p>Then run a search:</p>
+
+<pre><code class="language-bash">curl -s "http://127.0.0.1:8080/api/search?q=running&amp;category=Footwear"
+</code></pre>
+
+<p>Open the app in a browser:</p>
+
+<pre><code>http://127.0.0.1:8080</code></pre>
+
+<p>The browser talks to the store search app. The app talks to OpenSearch from inside AKS. OpenSearch itself remains private.</p>
+
+<h2>What the app demonstrates</h2>
+
+<p>The store search sample is intentionally small, but it demonstrates several important behaviors that API-only validation does not show:</p>
+
+<ul>
+  <li>The app resolves the private Kubernetes DNS name for OpenSearch.</li>
+  <li>The app authenticates to OpenSearch by using a Kubernetes secret instead of embedding credentials in code.</li>
+  <li>The app owns the user-facing API shape.</li>
+  <li>The app can combine full-text search with structured filters.</li>
+  <li>The OpenSearch API does not need a public load balancer.</li>
+</ul>
+
+<p>The sample query uses a multi-field search across product name, brand, and description, plus an optional category filter. That is closer to a real application pattern than calling <code>/_search</code> directly from a user machine.</p>
+
+<h2>Operational considerations before publishing the app</h2>
+
+<p>The sample is not a production storefront. Before adapting this pattern for a real workload, consider the following areas.</p>
+
+<h3>Use least-privilege OpenSearch credentials</h3>
+
+<p>The sample uses the admin credential only to keep the walkthrough short. A production app should use an application-specific OpenSearch role and user with only the permissions needed for its index or index pattern.</p>
+
+<h3>Expose the app, not OpenSearch</h3>
+
+<p>If the app becomes user-facing, expose the application through your chosen ingress, load balancer, private endpoint, or API gateway pattern. Keep OpenSearch private behind the application tier.</p>
+
+<h3>Add network controls</h3>
+
+<p>Use Kubernetes network policies or your preferred cluster networking controls to limit which namespaces and pods can call the OpenSearch service. A private <code>ClusterIP</code> service is a good start, but it is not the same as workload-level authorization.</p>
+
+<h3>Plan credential rotation</h3>
+
+<p>Changing a Kubernetes secret is not the same as rotating the credential inside OpenSearch. Document the rotation process for OpenSearch users, Kubernetes secrets, app rollout, and validation.</p>
+
+<h3>Keep snapshots and restore drills in the operating model</h3>
+
+<p>Azure Disk-backed PVCs protect pod state, but they are not a substitute for OpenSearch snapshots. Keep Blob snapshots, restore testing, retention, and managed identity validation in your day-2 checklist.</p>
+
+<h2>Day-2 checks that matter for OpenSearch</h2>
+
+<p>A healthy AKS cluster does not automatically mean a healthy OpenSearch cluster. For a durable search platform, monitor both Kubernetes and OpenSearch signals:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Area</th>
+      <th>Signals to watch</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Cluster health</td>
+      <td>OpenSearch health status, unassigned shards, node count, and election stability.</td>
+    </tr>
+    <tr>
+      <td>Storage</td>
+      <td>PVC binding, disk usage, disk watermarks, shard relocation, and free-space headroom.</td>
+    </tr>
+    <tr>
+      <td>Performance</td>
+      <td>Indexing latency, search latency, JVM pressure, garbage collection symptoms, and thread pool saturation.</td>
+    </tr>
+    <tr>
+      <td>Recovery</td>
+      <td>Snapshot success, snapshot duration, restore validation, and Blob storage access through workload identity.</td>
+    </tr>
+    <tr>
+      <td>Access</td>
+      <td>Dashboards reachability, app reachability, API exposure drift, and Bastion access for operators.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Disk headroom deserves special attention. OpenSearch needs room for segment merges, shard movement, recovery, and temporary imbalance during maintenance. Do not size disks only for raw source data.</p>
+
+<pre><code>required disk ~= raw data * (1 + replicas) * operational overhead + free-space headroom</code></pre>
+
+<p>The exact factor depends on the workload, but the principle is stable: plan for operational movement, not just stored documents.</p>
+
+<h2>How Part 1 and Part 2 fit together</h2>
+
+<p>The two posts are meant to be read as a sequence:</p>
+
+<ul>
+  <li><strong>Part 1</strong> creates the OpenSearch-on-AKS foundation: AKS AVM baseline, manager and data tiers, PVC-backed Azure Disks, internal Dashboards, private API validation, and keyless snapshot storage.</li>
+  <li><strong>Part 2</strong> builds on that foundation: private AKS operations through Azure Bastion, OpenSearch kept behind an application boundary, and a store search app that demonstrates the app-to-search-service pattern.</li>
+</ul>
+
+<p>If you have not deployed the baseline yet, start with <a href="PART-1-LINK">Part 1: Getting Started with OpenSearch on AKS with AKS AVM and Helm</a>. If you already have the baseline running, use this post to validate the next layer: a private application path that uses OpenSearch without exposing OpenSearch.</p>
+
+<h2>Try, learn, follow</h2>
+
+<p><strong>Try</strong> — clone the companion repo at <a href="https://github.com/prwani/oss-data-on-aks">github.com/prwani/oss-data-on-aks</a>, deploy the secure baseline, and run the store search sample against your own AKS cluster.</p>
+
+<p><strong>Learn</strong> — review Azure Bastion native client tunneling for private AKS access, the AKS production baseline on Microsoft Learn, the Azure Verified Modules catalog, and the OpenSearch security and snapshot documentation.</p>
+
+<p><strong>Follow</strong> — follow the Apps on Azure and Linux and Open Source blogs on Microsoft Tech Community for more AKS and open-source data platform patterns.</p>
+
+<h2>Join the conversation</h2>
+
+<p>When you move from API validation to an application-backed search experience, what becomes the first challenge in your environment: private access, app identity, index-level permissions, network policy, snapshot restore testing, or performance tuning? Drop a comment below and share what you would want covered next.</p>
+
+<p><em>Trademarks: OpenSearch is a registered trademark of the OpenSearch Software Foundation. Apache and Apache License 2.0 are trademarks of the Apache Software Foundation. Kubernetes is a registered trademark of The Linux Foundation. Terraform is a registered trademark of HashiCorp, Inc. Other names mentioned may be trademarks of their respective owners.</em></p>

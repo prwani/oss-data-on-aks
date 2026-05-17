@@ -1,0 +1,62 @@
+[
+  {
+    "id": "sku-1001",
+    "name": "Trail running shoes",
+    "category": "Footwear",
+    "brand": "Contoso",
+    "description": "Lightweight running shoes for mixed terrain",
+    "price": 89.99,
+    "rating": 4.6,
+    "in_stock": true
+  },
+  {
+    "id": "sku-1002",
+    "name": "Waterproof hiking jacket",
+    "category": "Outerwear",
+    "brand": "Northwind",
+    "description": "Breathable rain shell for hiking and travel",
+    "price": 149.0,
+    "rating": 4.4,
+    "in_stock": true
+  },
+  {
+    "id": "sku-1003",
+    "name": "Insulated travel mug",
+    "category": "Accessories",
+    "brand": "Fabrikam",
+    "description": "Stainless steel mug that keeps coffee hot for hours",
+    "price": 24.5,
+    "rating": 4.8,
+    "in_stock": true
+  },
+  {
+    "id": "sku-1004",
+    "name": "Road running socks",
+    "category": "Footwear",
+    "brand": "Contoso",
+    "description": "Cushioned socks for everyday road running",
+    "price": 12.99,
+    "rating": 4.2,
+    "in_stock": true
+  },
+  {
+    "id": "sku-1005",
+    "name": "Commuter backpack",
+    "category": "Bags",
+    "brand": "Adventure Works",
+    "description": "Laptop backpack with weather-resistant storage",
+    "price": 74.99,
+    "rating": 4.5,
+    "in_stock": false
+  },
+  {
+    "id": "sku-1006",
+    "name": "Fitness watch",
+    "category": "Electronics",
+    "brand": "Fabrikam",
+    "description": "GPS watch with heart-rate tracking for running and cycling",
+    "price": 199.99,
+    "rating": 4.3,
+    "in_stock": true
+  }
+]

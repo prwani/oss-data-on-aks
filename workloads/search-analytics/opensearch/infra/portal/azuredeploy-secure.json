@@ -5,13 +5,13 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "1219579148337886227"
+      "templateHash": "8846159400488502749"
     }
   },
   "parameters": {
     "clusterName": {
       "type": "string",
-      "defaultValue": "aks-opensearch-dev",
+      "defaultValue": "aks-opensearch-secure-dev",
       "metadata": {
         "description": "AKS cluster name."
       }
@@ -44,41 +44,6 @@
         "description": "Container name for OpenSearch snapshots."
       }
     },
-    "adminPassword": {
-      "type": "securestring",
-      "minLength": 8,
-      "metadata": {
-        "description": "Initial OpenSearch admin password. This is stored only as Kubernetes secrets during the deployment script step."
-      }
-    },
-    "rawContentBaseUrl": {
-      "type": "string",
-      "defaultValue": "https://raw.githubusercontent.com/prwani/oss-data-on-aks/main",
-      "metadata": {
-        "description": "Raw GitHub content base URL used by the deployment script to fetch Kubernetes manifests and Helm values."
-      }
-    },
-    "opensearchHelmVersion": {
-      "type": "string",
-      "defaultValue": "3.6.0",
-      "metadata": {
-        "description": "OpenSearch Helm chart version for manager and data nodes."
-      }
-    },
-    "opensearchDashboardsHelmVersion": {
-      "type": "string",
-      "defaultValue": "3.2.0",
-      "metadata": {
-        "description": "OpenSearch Dashboards Helm chart version."
-      }
-    },
-    "deploymentScriptForceUpdateTag": {
-      "type": "string",
-      "defaultValue": "[utcNow()]",
-      "metadata": {
-        "description": "Deployment script force-update tag. Keep the default unless you intentionally need to rerun the script during an incremental redeployment."
-      }
-    },
     "virtualNetworkAddressPrefix": {
       "type": "string",
       "defaultValue": "10.240.0.0/16",
@@ -93,32 +58,41 @@
         "description": "AKS node subnet address prefix."
       }
     },
-    "deploymentScriptSubnetAddressPrefix": {
+    "bastionSubnetAddressPrefix": {
       "type": "string",
-      "defaultValue": "10.240.16.0/24",
+      "defaultValue": "10.240.16.0/26",
       "metadata": {
-        "description": "Deployment script subnet address prefix. This subnet is delegated to Azure Container Instances so the script can reach the private AKS API."
+        "description": "Azure Bastion subnet address prefix. AzureBastionSubnet must be /26 or larger."
       }
     },
-    "exposePublicEndpoints": {
+    "deployBastion": {
       "type": "bool",
-      "defaultValue": false,
+      "defaultValue": true,
       "metadata": {
-        "description": "Demo-only option. When true, exposes OpenSearch manager API and Dashboards through public Azure LoadBalancers. This publishes all authenticated OpenSearch APIs on 9200, not only the sample blog API paths."
+        "description": "Whether to deploy Azure Bastion for native AKS private cluster access."
+      }
+    },
+    "bastionSku": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "allowedValues": [
+        "Standard",
+        "Premium"
+      ],
+      "metadata": {
+        "description": "Azure Bastion SKU. Native client tunneling for AKS private cluster access requires Standard or Premium."
       }
     }
   },
   "variables": {
     "virtualNetworkName": "[format('vnet-{0}', parameters('clusterName'))]",
     "aksSubnetName": "snet-aks",
-    "deploymentScriptSubnetName": "snet-deployment-script",
+    "bastionSubnetName": "AzureBastionSubnet",
+    "bastionName": "[format('bas-{0}', parameters('clusterName'))]",
+    "bastionPublicIpName": "[format('pip-{0}-bastion', parameters('clusterName'))]",
     "clusterIdentityName": "[format('id-{0}-aks', parameters('clusterName'))]",
-    "deploymentScriptIdentityName": "[format('id-{0}-portal-secure-deploy', parameters('clusterName'))]",
-    "deploymentScriptStorageAccountName": "[take(format('st{0}', uniqueString(resourceGroup().id, parameters('clusterName'), 'script')), 24)]",
     "secureResourceTags": "[union(parameters('tags'), createObject('workload', 'opensearch', 'blueprint', 'opensearch-on-aks', 'securityProfile', 'secure'))]",
-    "deploymentScriptTags": "[union(variables('secureResourceTags'), createObject('purpose', 'portal-full-deployment'))]",
-    "deploymentScriptStorageTags": "[union(variables('secureResourceTags'), createObject('purpose', 'deployment-script'))]",
-    "aksClusterAdminRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8')]",
+    "bastionResourceTags": "[union(variables('secureResourceTags'), createObject('purpose', 'private-aks-access'))]",
     "networkContributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4d97b98b-1d4f-4787-a291-c67834d212e7')]"
   },
   "resources": [
@@ -134,29 +108,53 @@
             "[parameters('virtualNetworkAddressPrefix')]"
           ]
         },
-        "subnets": [
+        "subnets": "[concat(createArray(createObject('name', variables('aksSubnetName'), 'properties', createObject('addressPrefix', parameters('aksSubnetAddressPrefix')))), if(parameters('deployBastion'), createArray(createObject('name', variables('bastionSubnetName'), 'properties', createObject('addressPrefix', parameters('bastionSubnetAddressPrefix')))), createArray()))]"
+      }
+    },
+    {
+      "condition": "[parameters('deployBastion')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2024-05-01",
+      "name": "[variables('bastionPublicIpName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
+      "tags": "[variables('bastionResourceTags')]",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "condition": "[parameters('deployBastion')]",
+      "type": "Microsoft.Network/bastionHosts",
+      "apiVersion": "2024-05-01",
+      "name": "[variables('bastionName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('bastionSku')]"
+      },
+      "tags": "[variables('bastionResourceTags')]",
+      "properties": {
+        "enableTunneling": true,
+        "ipConfigurations": [
           {
-            "name": "[variables('aksSubnetName')]",
+            "name": "bastion-ipconfig",
             "properties": {
-              "addressPrefix": "[parameters('aksSubnetAddressPrefix')]"
-            }
-          },
-          {
-            "name": "[variables('deploymentScriptSubnetName')]",
-            "properties": {
-              "addressPrefix": "[parameters('deploymentScriptSubnetAddressPrefix')]",
-              "delegations": [
-                {
-                  "name": "aci-delegation",
-                  "properties": {
-                    "serviceName": "Microsoft.ContainerInstance/containerGroups"
-                  }
-                }
-              ]
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('bastionSubnetName'))]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpName'))]"
+              }
             }
           }
         ]
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+      ]
     },
     {
       "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
@@ -181,135 +179,9 @@
       ]
     },
     {
-      "type": "Microsoft.Storage/storageAccounts",
-      "apiVersion": "2023-05-01",
-      "name": "[variables('deploymentScriptStorageAccountName')]",
-      "location": "[parameters('location')]",
-      "sku": {
-        "name": "Standard_LRS"
-      },
-      "kind": "StorageV2",
-      "tags": "[variables('deploymentScriptStorageTags')]",
-      "properties": {
-        "allowSharedKeyAccess": true,
-        "allowBlobPublicAccess": false,
-        "minimumTlsVersion": "TLS1_2",
-        "networkAcls": {
-          "bypass": "AzureServices",
-          "defaultAction": "Allow"
-        },
-        "publicNetworkAccess": "Enabled",
-        "supportsHttpsTrafficOnly": true
-      }
-    },
-    {
-      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-      "apiVersion": "2023-01-31",
-      "name": "[variables('deploymentScriptIdentityName')]",
-      "location": "[parameters('location')]",
-      "tags": "[variables('deploymentScriptTags')]"
-    },
-    {
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[format('Microsoft.ContainerService/managedClusters/{0}', parameters('clusterName'))]",
-      "name": "[guid(resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentityName')), variables('aksClusterAdminRoleDefinitionId'))]",
-      "properties": {
-        "roleDefinitionId": "[variables('aksClusterAdminRoleDefinitionId')]",
-        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentityName')), '2023-01-31').principalId]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentityName'))]",
-        "[resourceId('Microsoft.Resources/deployments', 'opensearchBaseline')]"
-      ]
-    },
-    {
-      "type": "Microsoft.Resources/deploymentScripts",
-      "apiVersion": "2023-08-01",
-      "name": "[format('install-opensearch-{0}', uniqueString(resourceGroup().id, parameters('clusterName')))]",
-      "location": "[parameters('location')]",
-      "kind": "AzureCLI",
-      "identity": {
-        "type": "UserAssigned",
-        "userAssignedIdentities": {
-          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentityName')))]": {}
-        }
-      },
-      "properties": {
-        "azCliVersion": "2.63.0",
-        "timeout": "PT1H",
-        "cleanupPreference": "OnSuccess",
-        "retentionInterval": "P1D",
-        "forceUpdateTag": "[parameters('deploymentScriptForceUpdateTag')]",
-        "containerSettings": {
-          "containerGroupName": "[format('aci-{0}', uniqueString(resourceGroup().id, parameters('clusterName')))]",
-          "subnetIds": [
-            {
-              "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('deploymentScriptSubnetName'))]"
-            }
-          ]
-        },
-        "storageAccountSettings": {
-          "storageAccountName": "[variables('deploymentScriptStorageAccountName')]",
-          "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('deploymentScriptStorageAccountName')), '2023-05-01').keys[0].value]"
-        },
-        "environmentVariables": [
-          {
-            "name": "RESOURCE_GROUP",
-            "value": "[resourceGroup().name]"
-          },
-          {
-            "name": "CLUSTER_NAME",
-            "value": "[parameters('clusterName')]"
-          },
-          {
-            "name": "SNAPSHOT_STORAGE_ACCOUNT",
-            "value": "[parameters('snapshotStorageAccountName')]"
-          },
-          {
-            "name": "SNAPSHOT_CONTAINER",
-            "value": "[parameters('snapshotContainerName')]"
-          },
-          {
-            "name": "SNAPSHOT_IDENTITY_CLIENT_ID",
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'opensearchBaseline'), '2025-04-01').outputs.snapshotManagedIdentityClientId.value]"
-          },
-          {
-            "name": "RAW_CONTENT_BASE_URL",
-            "value": "[parameters('rawContentBaseUrl')]"
-          },
-          {
-            "name": "OPENSEARCH_HELM_VERSION",
-            "value": "[parameters('opensearchHelmVersion')]"
-          },
-          {
-            "name": "OPENSEARCH_DASHBOARDS_HELM_VERSION",
-            "value": "[parameters('opensearchDashboardsHelmVersion')]"
-          },
-          {
-            "name": "EXPOSE_PUBLIC_ENDPOINTS",
-            "value": "[string(parameters('exposePublicEndpoints'))]"
-          },
-          {
-            "name": "ADMIN_PASSWORD",
-            "secureValue": "[parameters('adminPassword')]"
-          }
-        ],
-        "scriptContent": "      #!/usr/bin/env bash\n      set -euo pipefail\n\n      export PATH=\"/usr/local/bin:${PATH}\"\n      workdir=\"$(mktemp -d)\"\n      cd \"$workdir\"\n      expose_public_endpoints=\"$(printf '%s' \"$EXPOSE_PUBLIC_ENDPOINTS\" | tr '[:upper:]' '[:lower:]')\"\n\n      echo \"Installing kubectl and Helm...\"\n      az aks install-cli --only-show-errors\n      curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash\n\n      echo \"Connecting to AKS...\"\n      for attempt in $(seq 1 18); do\n        if az aks get-credentials --admin --resource-group \"$RESOURCE_GROUP\" --name \"$CLUSTER_NAME\" --overwrite-existing --only-show-errors; then\n          break\n        fi\n        if [ \"$attempt\" = \"18\" ]; then\n          echo \"Unable to get AKS credentials after waiting for role assignment propagation.\" >&2\n          exit 1\n        fi\n        sleep 20\n      done\n\n      manifest_base=\"${RAW_CONTENT_BASE_URL}/workloads/search-analytics/opensearch/kubernetes\"\n      curl -fsSL \"${manifest_base}/manifests/managed-csi-premium-storageclass.yaml\" -o managed-csi-premium-storageclass.yaml\n      curl -fsSL \"${manifest_base}/manifests/namespace.yaml\" -o namespace.yaml\n      curl -fsSL \"${manifest_base}/helm/manager-values.yaml\" -o manager-values.yaml\n      curl -fsSL \"${manifest_base}/helm/data-values.yaml\" -o data-values.yaml\n      curl -fsSL \"${manifest_base}/helm/dashboards-values.yaml\" -o dashboards-values.yaml\n\n      echo \"Creating namespace, storage class, and secrets...\"\n      kubectl apply -f managed-csi-premium-storageclass.yaml\n      kubectl apply -f namespace.yaml\n\n      cookie_secret=\"$(openssl rand -hex 16)\"\n      kubectl create secret generic opensearch-admin-credentials \\\n        --namespace opensearch \\\n        --from-literal=password=\"$ADMIN_PASSWORD\" \\\n        --dry-run=client -o yaml | kubectl apply -f -\n\n      kubectl create secret generic opensearch-dashboards-auth \\\n        --namespace opensearch \\\n        --from-literal=username='admin' \\\n        --from-literal=password=\"$ADMIN_PASSWORD\" \\\n        --from-literal=cookie=\"$cookie_secret\" \\\n        --dry-run=client -o yaml | kubectl apply -f -\n\n      kubectl create secret generic opensearch-snapshot-settings \\\n        --namespace opensearch \\\n        --from-literal=azure.client.default.account=\"$SNAPSHOT_STORAGE_ACCOUNT\" \\\n        --dry-run=client -o yaml | kubectl apply -f -\n\n      echo \"Installing OpenSearch Helm releases...\"\n      helm repo add opensearch https://opensearch-project.github.io/helm-charts/\n      helm repo update\n\n      manager_value_args=(--values manager-values.yaml)\n      dashboards_value_args=(--values dashboards-values.yaml)\n      if [ \"$expose_public_endpoints\" = \"true\" ]; then\n        echo \"Demo public endpoints are enabled. OpenSearch manager API and Dashboards will use public Azure LoadBalancers.\"\n        printf '%s\\n' \\\n          'service:' \\\n          '  type: LoadBalancer' \\\n          '  annotations:' \\\n          '    service.beta.kubernetes.io/azure-load-balancer-internal: \"false\"' \\\n          > public-service-values.yaml\n        manager_value_args+=(--values public-service-values.yaml)\n        dashboards_value_args+=(--values public-service-values.yaml)\n      fi\n\n      helm upgrade --install opensearch-manager opensearch/opensearch \\\n        --version \"$OPENSEARCH_HELM_VERSION\" \\\n        --namespace opensearch \\\n        --set-string \"rbac.serviceAccountAnnotations.azure\\\\.workload\\\\.identity/client-id=$SNAPSHOT_IDENTITY_CLIENT_ID\" \\\n        \"${manager_value_args[@]}\"\n\n      helm upgrade --install opensearch-data opensearch/opensearch \\\n        --version \"$OPENSEARCH_HELM_VERSION\" \\\n        --namespace opensearch \\\n        --set-string \"rbac.serviceAccountAnnotations.azure\\\\.workload\\\\.identity/client-id=$SNAPSHOT_IDENTITY_CLIENT_ID\" \\\n        --values data-values.yaml\n\n      helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \\\n        --version \"$OPENSEARCH_DASHBOARDS_HELM_VERSION\" \\\n        --namespace opensearch \\\n        \"${dashboards_value_args[@]}\"\n\n      echo \"Waiting for OpenSearch and Dashboards readiness...\"\n      kubectl wait --for=condition=Ready pod -n opensearch -l app.kubernetes.io/component=opensearch-manager --timeout=900s\n      kubectl wait --for=condition=Ready pod -n opensearch -l app.kubernetes.io/component=opensearch-data --timeout=900s\n      kubectl wait --for=condition=Ready pod -n opensearch -l app.kubernetes.io/name=opensearch-dashboards --timeout=600s\n\n      kubectl port-forward svc/opensearch-manager 9200:9200 -n opensearch >/tmp/opensearch-portal-port-forward.log 2>&1 &\n      pf_pid=\"$!\"\n      trap 'kill \"$pf_pid\" 2>/dev/null || true' EXIT\n\n      for attempt in $(seq 1 30); do\n        if curl -sk -u \"admin:${ADMIN_PASSWORD}\" --max-time 2 https://127.0.0.1:9200 >/dev/null; then\n          break\n        fi\n        if [ \"$attempt\" = \"30\" ]; then\n          echo \"OpenSearch API did not become reachable through port-forward.\" >&2\n          exit 1\n        fi\n        sleep 2\n      done\n\n      echo \"Registering and verifying Azure snapshot repository...\"\n      curl -sk -u \"admin:${ADMIN_PASSWORD}\" \\\n        -XPUT https://127.0.0.1:9200/_snapshot/azure-managed-identity \\\n        -H 'Content-Type: application/json' \\\n        -d \"{\\\"type\\\":\\\"azure\\\",\\\"settings\\\":{\\\"client\\\":\\\"default\\\",\\\"container\\\":\\\"$SNAPSHOT_CONTAINER\\\"}}\"\n\n      curl -sk -u \"admin:${ADMIN_PASSWORD}\" \\\n        -XPOST https://127.0.0.1:9200/_snapshot/azure-managed-identity/_verify?pretty\n\n      dashboards_ip=\"\"\n      opensearch_api_ip=\"\"\n      for attempt in $(seq 1 60); do\n        dashboards_ip=\"$(kubectl get svc opensearch-dashboards -n opensearch -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)\"\n        if [ -n \"$dashboards_ip\" ]; then\n          break\n        fi\n        sleep 10\n      done\n\n      if [ \"$expose_public_endpoints\" = \"true\" ]; then\n        for attempt in $(seq 1 60); do\n          opensearch_api_ip=\"$(kubectl get svc opensearch-manager -n opensearch -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)\"\n          if [ -n \"$opensearch_api_ip\" ]; then\n            break\n          fi\n          sleep 10\n        done\n      fi\n\n      echo \"Deployment complete.\"\n      if [ \"$expose_public_endpoints\" = \"true\" ]; then\n        echo \"OpenSearch public API URL: ${opensearch_api_ip:+https://${opensearch_api_ip}:9200}\"\n        echo \"Dashboards public URL: ${dashboards_ip:+http://${dashboards_ip}:5601}\"\n        echo \"Warning: the public OpenSearch API URL exposes all authenticated OpenSearch APIs, not only the blog sample paths.\"\n      else\n        echo \"Dashboards internal URL: ${dashboards_ip:+http://${dashboards_ip}:5601}\"\n        echo \"If you cannot reach the internal IP, run: kubectl port-forward svc/opensearch-dashboards 5601:5601 -n opensearch\"\n      fi\n      echo \"Dashboards username: admin\"\n    "
-      },
-      "dependsOn": [
-        "[extensionResourceId(resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentityName')), variables('aksClusterAdminRoleDefinitionId')))]",
-        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('deploymentScriptIdentityName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('deploymentScriptStorageAccountName'))]",
-        "[resourceId('Microsoft.Resources/deployments', 'opensearchBaseline')]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-      ]
-    },
-    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "opensearchBaseline",
+      "name": "opensearchSecureBaseline",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -4410,15 +4282,39 @@
   "outputs": {
     "deployedClusterName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'opensearchBaseline'), '2025-04-01').outputs.deployedClusterName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'opensearchSecureBaseline'), '2025-04-01').outputs.deployedClusterName.value]"
     },
     "deployedSnapshotStorageAccount": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'opensearchBaseline'), '2025-04-01').outputs.deployedSnapshotStorageAccount.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'opensearchSecureBaseline'), '2025-04-01').outputs.deployedSnapshotStorageAccount.value]"
     },
-    "dashboardsAccessNote": {
+    "snapshotManagedIdentityClientId": {
       "type": "string",
-      "value": "OpenSearch Dashboards is exposed on an internal load balancer. Use kubectl get svc opensearch-dashboards -n opensearch to get the private IP, or port-forward svc/opensearch-dashboards 5601:5601."
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'opensearchSecureBaseline'), '2025-04-01').outputs.snapshotManagedIdentityClientId.value]"
+    },
+    "virtualNetworkResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+    },
+    "aksSubnetResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('aksSubnetName'))]"
+    },
+    "bastionResourceId": {
+      "type": "string",
+      "value": "[if(parameters('deployBastion'), resourceId('Microsoft.Network/bastionHosts', variables('bastionName')), '')]"
+    },
+    "getCredentialsCommand": {
+      "type": "string",
+      "value": "[format('az aks get-credentials --admin --resource-group {0} --name {1}', resourceGroup().name, parameters('clusterName'))]"
+    },
+    "aksBastionCommand": {
+      "type": "string",
+      "value": "[if(parameters('deployBastion'), format('az aks bastion --admin --resource-group {0} --name {1} --bastion {2}', resourceGroup().name, parameters('clusterName'), resourceId('Microsoft.Network/bastionHosts', variables('bastionName'))), format('Provide a Standard or Premium Azure Bastion resource ID, then run: az aks bastion --admin --resource-group {0} --name {1} --bastion <bastion-resource-id>', resourceGroup().name, parameters('clusterName')))]"
+    },
+    "operatorBootstrapNote": {
+      "type": "string",
+      "value": "Open an AKS private-cluster tunnel with Azure Bastion, then run the Kubernetes, Helm, snapshot repository, and store-search sample steps from the Blog 2 guidance."
     }
   }
 }

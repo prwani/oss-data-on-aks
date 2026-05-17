@@ -1,12 +1,12 @@
-# OpenSearch on AKS, part 2: production-minded design for stateful search clusters
+# OpenSearch on AKS, part 2: private access with Azure Bastion and a store search app
 
 **Publication target:** Microsoft TechCommunity > Azure > Linux and Open Source Blog
 
 ## Summary
 
-In Part 1, I focused on getting OpenSearch onto AKS with a reusable Azure-first blueprint. In this follow-up, I want to focus on what changes when you stop treating OpenSearch like a quick lab and start treating it like a durable platform workload.
+In Part 1, I focused on getting OpenSearch onto AKS with a reusable Azure-first baseline. In this follow-up, I want to make the secure access pattern more realistic: a private AKS API, OpenSearch kept inside the cluster, operator access through Azure Bastion, and a small store search app that shows how a user-facing workload should talk to OpenSearch without exposing the OpenSearch API directly.
 
-That means thinking seriously about cluster-manager versus data roles, Azure Disk choices, disk headroom, internal access, snapshot posture, and the operational signals that matter after the initial deployment day.
+That means treating OpenSearch as a private search platform behind an application tier, not as a public endpoint.
 
 ## OpenSearch is not just another deployment
 
@@ -39,6 +39,156 @@ This follow-up assumes the same checked-in deployment contract as Part 1.
 | Dashboards chart | `opensearch/opensearch-dashboards` `3.6.0` | `workloads/search-analytics/opensearch/kubernetes/helm/README.md` |
 
 The checked-in values intentionally inherit runtime images from those chart defaults, so `3.6.0` is the repo-backed version to revalidate before publication.
+
+## Secure architecture for Part 2
+
+The secure pattern for this post is:
+
+```text
+operator workstation
+  -> Azure Bastion native client tunnel
+    -> private AKS API
+      -> kubectl and Helm bootstrap
+
+browser test
+  -> kubectl port-forward to store-search
+    -> store-search app inside AKS
+      -> private OpenSearch ClusterIP service
+```
+
+This keeps the important boundaries clear:
+
+- the AKS API is private
+- the OpenSearch API is `ClusterIP`
+- Dashboards remains internal/operator-facing
+- the store search app is the only workload-facing search surface in the demo
+- snapshot storage stays on managed identity and does not require storage account keys
+
+The secure portal template for this flow is:
+
+`workloads/search-analytics/opensearch/infra/portal/azuredeploy-secure.json`
+
+It creates the private AKS baseline and optional Azure Bastion resources, but it does **not** use Azure Deployment Scripts. That is intentional. Many enterprise subscriptions block storage account key access, and Deployment Scripts depend on backing storage behavior that is not a good fit for that policy.
+
+## Deploy the secure baseline
+
+Use the secure portal template and capture the outputs after deployment:
+
+- `deployedClusterName`
+- `deployedSnapshotStorageAccount`
+- `snapshotManagedIdentityClientId`
+- `bastionResourceId`
+- `getCredentialsCommand`
+- `aksBastionCommand`
+
+The template can create Azure Bastion for the AKS VNet, or you can disable Bastion deployment and use an existing Standard or Premium Bastion host in a reachable VNet.
+
+## Connect to the private AKS API with Azure Bastion
+
+Azure Bastion native client tunneling gives your workstation a local tunnel to the private AKS API server.
+
+First get cluster credentials:
+
+```bash
+az aks get-credentials \
+  --admin \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$CLUSTER_NAME"
+```
+
+Then open the Bastion tunnel:
+
+```bash
+az aks bastion \
+  --admin \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$CLUSTER_NAME" \
+  --bastion "$BASTION_RESOURCE_ID"
+```
+
+In another terminal, point the temporary kubeconfig at the local tunnel port:
+
+```bash
+export BASTION_PORT="$(ps aux | sed -n 's/.*--port \([0-9]*\).*/\1/p' | head -1)"
+sed -i "s|server: https://.*|server: https://localhost:${BASTION_PORT}|" "$KUBECONFIG"
+export GODEBUG=http2client=0
+kubectl get nodes
+```
+
+Keep that `KUBECONFIG` value active while you run `kubectl` and Helm commands. If `kubectl` calls intermittently time out through the Bastion tunnel, keep `GODEBUG=http2client=0` set or restart the tunnel and retry the command.
+
+Once `kubectl get nodes` works, run the same namespace, secret, Helm, and snapshot repository steps from Part 1 by using the secure baseline outputs for:
+
+```bash
+export SNAPSHOT_STORAGE_ACCOUNT=<deployedSnapshotStorageAccount>
+export SNAPSHOT_IDENTITY_CLIENT_ID=<snapshotManagedIdentityClientId>
+```
+
+## Add a store search app
+
+The store search app is intentionally small. It is not a production storefront. Its job is to demonstrate the enterprise pattern:
+
+```text
+user-facing app
+  -> private OpenSearch service
+```
+
+Build and publish the sample image:
+
+```bash
+export ACR_NAME=<acr-name>
+export STORE_SEARCH_IMAGE="${ACR_NAME}.azurecr.io/store-search:0.1.0"
+
+az acr build \
+  --registry "$ACR_NAME" \
+  --image store-search:0.1.0 \
+  workloads/search-analytics/opensearch/samples/store-search
+```
+
+Update the image in:
+
+`workloads/search-analytics/opensearch/samples/store-search/kubernetes/store-search.yaml`
+
+Create the namespace and app secret with the same OpenSearch admin password used during bootstrap:
+
+```bash
+export OPENSEARCH_ADMIN_PASSWORD='<strong-admin-password>'
+
+kubectl create namespace store-search --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl create secret generic store-search-opensearch \
+  --namespace store-search \
+  --from-literal=username='admin' \
+  --from-literal=password="$OPENSEARCH_ADMIN_PASSWORD" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+Use the same `OPENSEARCH_ADMIN_PASSWORD` value for every retry. After the OpenSearch security index is initialized, changing only the Kubernetes Secret does not rotate the internal `admin` password.
+
+Deploy the app:
+
+```bash
+kubectl apply -f workloads/search-analytics/opensearch/samples/store-search/kubernetes/store-search.yaml
+kubectl rollout status deploy/store-search -n store-search --timeout=300s
+```
+
+Port-forward the app:
+
+```bash
+export GODEBUG=http2client=0
+kubectl port-forward svc/store-search 8080:80 -n store-search
+```
+
+Seed the catalog and search it:
+
+```bash
+curl -s -XPOST http://127.0.0.1:8080/api/seed
+curl -s "http://127.0.0.1:8080/api/search?q=running&category=Footwear"
+```
+
+Then open `http://127.0.0.1:8080`.
+
+This is more realistic than exposing OpenSearch itself. A public or internal application can be exposed through an ingress, load balancer, or API gateway later, but OpenSearch should stay behind that application boundary.
 
 
 ## Architecture recap: why storage and PVCs matter
