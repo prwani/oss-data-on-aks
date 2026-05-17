@@ -19,10 +19,14 @@ param snapshotStorageAccountName string = take('opssnap${uniqueString(subscripti
 param snapshotContainerName string = 'opensearch-snapshots'
 
 @description('Optional AKS API server access profile. Use this for private cluster settings or authorized IP ranges.')
-param apiServerAccessProfile object?
+param apiServerAccessProfile object = {}
 
 @description('Optional public network access setting for AKS.')
-param publicNetworkAccess string?
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+param publicNetworkAccess string = 'Enabled'
 
 @description('Optional VNet subnet resource ID for AKS nodes.')
 param vnetSubnetResourceId string = ''
@@ -99,7 +103,7 @@ module aksPlatform '../../../../../platform/aks-avm/bicep/main.bicep' = {
     enableWorkloadIdentity: true
     tags: resourceTags
     managedIdentities: managedIdentities
-    apiServerAccessProfile: apiServerAccessProfile
+    apiServerAccessProfile: empty(apiServerAccessProfile) ? null : apiServerAccessProfile
     publicNetworkAccess: publicNetworkAccess
     primaryAgentPoolProfiles: primaryAgentPoolProfiles
     agentPools: agentPools

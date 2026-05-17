@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "10565631199619792467"
+      "templateHash": "5957945358411367911"
     }
   },
   "parameters": {
@@ -54,14 +54,18 @@
     },
     "apiServerAccessProfile": {
       "type": "object",
-      "nullable": true,
+      "defaultValue": {},
       "metadata": {
         "description": "Optional AKS API server access profile. Use this for private cluster settings or authorized IP ranges."
       }
     },
     "publicNetworkAccess": {
       "type": "string",
-      "nullable": true,
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
       "metadata": {
         "description": "Optional public network access setting for AKS."
       }
@@ -264,9 +268,7 @@
           "managedIdentities": {
             "value": "[parameters('managedIdentities')]"
           },
-          "apiServerAccessProfile": {
-            "value": "[parameters('apiServerAccessProfile')]"
-          },
+          "apiServerAccessProfile": "[if(empty(parameters('apiServerAccessProfile')), createObject('value', null()), createObject('value', parameters('apiServerAccessProfile')))]",
           "publicNetworkAccess": {
             "value": "[parameters('publicNetworkAccess')]"
           },
@@ -285,7 +287,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "13955422296569920544"
+              "templateHash": "18181731574924664771"
             }
           },
           "parameters": {
@@ -372,14 +374,18 @@
             },
             "apiServerAccessProfile": {
               "type": "object",
-              "nullable": true,
+              "defaultValue": {},
               "metadata": {
                 "description": "Optional AKS API server access profile. Use this for private cluster settings or authorized IP ranges."
               }
             },
             "publicNetworkAccess": {
               "type": "string",
-              "nullable": true,
+              "defaultValue": "Enabled",
+              "allowedValues": [
+                "Enabled",
+                "Disabled"
+              ],
               "metadata": {
                 "description": "Optional public network access setting for AKS."
               }
@@ -454,9 +460,7 @@
                   "enableStorageProfileSnapshotController": {
                     "value": "[parameters('enableStorageProfileSnapshotController')]"
                   },
-                  "apiServerAccessProfile": {
-                    "value": "[parameters('apiServerAccessProfile')]"
-                  },
+                  "apiServerAccessProfile": "[if(empty(parameters('apiServerAccessProfile')), createObject('value', null()), createObject('value', parameters('apiServerAccessProfile')))]",
                   "publicNetworkAccess": {
                     "value": "[parameters('publicNetworkAccess')]"
                   }
