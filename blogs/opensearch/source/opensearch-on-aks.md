@@ -224,11 +224,13 @@ kubectl create secret generic opensearch-admin-credentials \
   --from-literal=password='<strong-admin-password>' \
   --dry-run=client -o yaml | kubectl apply -f -
 
+export DASHBOARDS_COOKIE_SECRET="$(openssl rand -hex 16)"
+
 kubectl create secret generic opensearch-dashboards-auth \
   --namespace opensearch \
   --from-literal=username='admin' \
   --from-literal=password='<strong-admin-password>' \
-  --from-literal=cookie='<32-character-cookie-secret>' \
+  --from-literal=cookie="$DASHBOARDS_COOKIE_SECRET" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl create secret generic opensearch-snapshot-settings \
