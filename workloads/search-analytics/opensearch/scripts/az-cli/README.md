@@ -16,7 +16,7 @@ The script prompts for:
 - Azure region
 - resource group
 - AKS cluster name
-- snapshot storage account name
+- optional snapshot storage account name override
 - OpenSearch admin password
 
 It then runs the Azure deployment, connects to AKS, creates the namespace and secrets, installs the manager, data, and Dashboards Helm releases, waits for readiness, registers the Azure Blob snapshot repository, and prints the Dashboards access details.
@@ -28,7 +28,8 @@ DEPLOY_ENGINE=terraform \
 LOCATION=swedencentral \
 RESOURCE_GROUP=rg-opensearch-aks-dev \
 CLUSTER_NAME=aks-opensearch-dev \
-SNAPSHOT_STORAGE_ACCOUNT=opssnapdev001 \
 ADMIN_PASSWORD='<strong-admin-password>' \
 workloads/search-analytics/opensearch/scripts/az-cli/deploy.sh
 ```
+
+If `SNAPSHOT_STORAGE_ACCOUNT` is omitted, the selected IaC wrapper generates a deterministic globally unique name and the script reads it back from deployment outputs before creating the Kubernetes snapshot settings secret.

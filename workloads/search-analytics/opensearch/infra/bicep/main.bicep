@@ -6,11 +6,14 @@ param clusterName string = 'aks-opensearch-dev'
 @description('Azure region for supporting resources.')
 param location string = resourceGroup().location
 
+@description('Optional tags to apply to Azure resources created by this template.')
+param tags object = {}
+
 @description('Whether to create a starter storage account and container for OpenSearch snapshots.')
 param deploySnapshotStorage bool = true
 
-@description('Globally unique storage account name used for snapshot artifacts.')
-param snapshotStorageAccountName string = 'opssnapdev001'
+@description('Globally unique storage account name used for snapshot artifacts. Defaults to a deterministic name with a subscription, resource group, and cluster-specific suffix.')
+param snapshotStorageAccountName string = take('opssnap${uniqueString(subscription().subscriptionId, resourceGroup().name, clusterName)}', 24)
 
 @description('Container name for OpenSearch snapshots.')
 param snapshotContainerName string = 'opensearch-snapshots'
@@ -35,6 +38,10 @@ var snapshotDataServiceAccountName = 'opensearch-data-snapshots'
 var snapshotManagerServiceAccountSubject = 'system:serviceaccount:${snapshotServiceAccountNamespace}:${snapshotManagerServiceAccountName}'
 var snapshotDataServiceAccountSubject = 'system:serviceaccount:${snapshotServiceAccountNamespace}:${snapshotDataServiceAccountName}'
 var snapshotManagedIdentityName = 'id-${clusterName}-snapshots'
+var resourceTags = union(tags, {
+  workload: 'opensearch'
+  blueprint: 'opensearch-on-aks'
+})
 var storageBlobDataContributorRoleDefinitionId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
@@ -90,6 +97,7 @@ module aksPlatform '../../../../../platform/aks-avm/bicep/main.bicep' = {
     dnsPrefix: '${clusterName}-dns'
     enableOidcIssuerProfile: true
     enableWorkloadIdentity: true
+    tags: resourceTags
     managedIdentities: managedIdentities
     apiServerAccessProfile: apiServerAccessProfile
     publicNetworkAccess: publicNetworkAccess
@@ -107,10 +115,7 @@ resource snapshotStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = if (de
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
-  tags: {
-    workload: 'opensearch'
-    blueprint: 'opensearch-on-aks'
-  }
+  tags: resourceTags
   properties: {
     allowBlobPublicAccess: false
     allowSharedKeyAccess: false
@@ -136,10 +141,7 @@ resource snapshotContainer 'Microsoft.Storage/storageAccounts/blobServices/conta
 resource snapshotManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (deploySnapshotStorage) {
   name: snapshotManagedIdentityName
   location: location
-  tags: {
-    workload: 'opensearch'
-    blueprint: 'opensearch-on-aks'
-  }
+  tags: resourceTags
 }
 
 resource snapshotManagerFederatedCredential 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2023-01-31' = if (deploySnapshotStorage) {

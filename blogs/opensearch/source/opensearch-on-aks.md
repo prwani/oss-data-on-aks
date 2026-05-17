@@ -117,7 +117,7 @@ Before you start, make sure you have:
 - `kubectl` installed
 - Helm 3.x installed
 - Terraform 1.11+ if you want the Terraform path
-- a globally unique storage account name if you want to create snapshot storage from the example wrappers
+- Azure Storage account names are global; the checked-in wrappers generate a deterministic unique snapshot storage name by default, with an override available if your environment requires one
 
 ## Pick your deployment experience
 
@@ -125,13 +125,13 @@ If you want the Azure portal to run the full seven-step standard flow, use this 
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-full.json)
 
-The full portal deployment asks for an admin password, creates the AKS cluster, dedicated node pools, snapshot storage account, managed identity, and federated credentials, then uses an Azure deployment script to run the Kubernetes namespace, secret, Helm, readiness, and snapshot repository steps. The password is passed to the deployment script as a secure parameter and is used to create the OpenSearch and Dashboards Kubernetes secrets.
+The full portal deployment asks for an admin password and optional resource tags, creates the AKS cluster, dedicated node pools, snapshot storage account, managed identity, and federated credentials, then uses an Azure deployment script to run the Kubernetes namespace, secret, Helm, readiness, and snapshot repository steps. The password is passed to the deployment script as a secure parameter and is used to create the OpenSearch and Dashboards Kubernetes secrets.
 
 For a private AKS control plane, use the secure portal deployment:
 
 [![Deploy to Azure (secure)](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-secure.json)
 
-The secure template creates a VNet, places AKS nodes in a private subnet, disables public AKS API access, and runs the installation script from an Azure Container Instances subnet inside the same VNet so `kubectl` and Helm can reach the private API server.
+The secure template accepts the same optional resource tags, creates a VNet, places AKS nodes in a private subnet, disables public AKS API access, and runs the installation script from an Azure Container Instances subnet inside the same VNet so `kubectl` and Helm can reach the private API server.
 
 For short-lived demos where your laptop must reach the examples without VPN or Bastion, the secure template also has an `exposePublicEndpoints` parameter. Keep it `false` for the private default. If you set it to `true`, the template publishes Dashboards and the OpenSearch manager service through public Azure Load Balancers. That is convenient for the sample calls later in this post, but it exposes **all authenticated OpenSearch APIs** on port `9200`, not only the sample paths, so do not use it as a production hardening pattern.
 
@@ -153,7 +153,6 @@ This repo keeps both IaC options visible because different teams standardize dif
 export LOCATION=swedencentral
 export RESOURCE_GROUP=rg-opensearch-aks-dev
 export CLUSTER_NAME=aks-opensearch-dev
-export SNAPSHOT_STORAGE_ACCOUNT=opssnapdev001
 
 az group create \
   --name "$RESOURCE_GROUP" \
@@ -164,8 +163,13 @@ az deployment group create \
   --template-file workloads/search-analytics/opensearch/infra/bicep/main.bicep \
   --parameters \
       clusterName="$CLUSTER_NAME" \
-      location="$LOCATION" \
-      snapshotStorageAccountName="$SNAPSHOT_STORAGE_ACCOUNT"
+      location="$LOCATION"
+
+export SNAPSHOT_STORAGE_ACCOUNT="$(az deployment group show \
+  --resource-group "$RESOURCE_GROUP" \
+  --name main \
+  --query 'properties.outputs.deployedSnapshotStorageAccount.value' \
+  -o tsv)"
 ```
 
 ### Terraform path
@@ -174,16 +178,19 @@ az deployment group create \
 cd workloads/search-analytics/opensearch/infra/terraform
 cp terraform.tfvars.example terraform.tfvars
 
-# Edit terraform.tfvars for your resource group, region, cluster name,
-# and globally unique snapshot storage account name.
+# Edit terraform.tfvars for your resource group, region, and cluster name.
+# Leave snapshot_storage_account_name unset to use the generated default.
 
 terraform init
 terraform plan
 terraform apply
+
+export SNAPSHOT_STORAGE_ACCOUNT="$(terraform output -raw snapshot_storage_account_name)"
 ```
 
 The current wrappers focus on the AKS baseline and a starter snapshot storage account. They are designed to be a strong repo contract, not a claim that every day-2 detail is already automated.
 When snapshot storage is enabled, the wrappers also turn on the AKS OIDC issuer and workload identity features, create a user-assigned managed identity plus federated credentials for the OpenSearch snapshot service accounts, and disable shared-key access on the starter storage account.
+If you delete and quickly recreate the same environment, Azure Storage name retention can temporarily block the deterministic default; pass an explicit `snapshotStorageAccountName` or `snapshot_storage_account_name` override in that case.
 The checked-in wrappers provision `systempool`, `osmgr`, and `osdata`. The dedicated `osmgr` and `osdata` pools start with three nodes each so the default manager and data replicas can satisfy their hard anti-affinity rules.
 
 ## Step 2: Connect to AKS and create the namespace

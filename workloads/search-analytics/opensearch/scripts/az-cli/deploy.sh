@@ -37,6 +37,19 @@ prompt_secret() {
   export "$name=$current_value"
 }
 
+prompt_optional() {
+  local name="$1"
+  local prompt="$2"
+  local current_value="${!name:-}"
+
+  if [ -n "$current_value" ]; then
+    return
+  fi
+
+  read -r -p "$prompt: " current_value
+  export "$name=$current_value"
+}
+
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Required command not found: $1" >&2
@@ -66,7 +79,7 @@ prompt_default DEPLOY_ENGINE "Deployment engine (bicep or terraform)" "bicep"
 prompt_default LOCATION "Azure region" "swedencentral"
 prompt_default RESOURCE_GROUP "Resource group name" "rg-opensearch-aks-dev"
 prompt_default CLUSTER_NAME "AKS cluster name" "aks-opensearch-dev"
-prompt_default SNAPSHOT_STORAGE_ACCOUNT "Globally unique snapshot storage account name" "opssnap$(date +%m%d%H%M)"
+prompt_optional SNAPSHOT_STORAGE_ACCOUNT "Snapshot storage account name override (leave blank to use the generated default)"
 prompt_default SNAPSHOT_CONTAINER "Snapshot container name" "opensearch-snapshots"
 prompt_secret ADMIN_PASSWORD "OpenSearch admin password"
 
@@ -85,6 +98,15 @@ esac
 
 echo "Step 1/7: Deploying Azure baseline with $DEPLOY_ENGINE..."
 if [ "$DEPLOY_ENGINE" = "bicep" ]; then
+  BICEP_PARAMETERS=(
+    clusterName="$CLUSTER_NAME"
+    location="$LOCATION"
+    snapshotContainerName="$SNAPSHOT_CONTAINER"
+  )
+  if [ -n "$SNAPSHOT_STORAGE_ACCOUNT" ]; then
+    BICEP_PARAMETERS+=(snapshotStorageAccountName="$SNAPSHOT_STORAGE_ACCOUNT")
+  fi
+
   az group create \
     --name "$RESOURCE_GROUP" \
     --location "$LOCATION"
@@ -92,16 +114,17 @@ if [ "$DEPLOY_ENGINE" = "bicep" ]; then
   az deployment group create \
     --resource-group "$RESOURCE_GROUP" \
     --template-file "$WORKLOAD_DIR/infra/bicep/main.bicep" \
-    --parameters \
-      clusterName="$CLUSTER_NAME" \
-      location="$LOCATION" \
-      snapshotStorageAccountName="$SNAPSHOT_STORAGE_ACCOUNT" \
-      snapshotContainerName="$SNAPSHOT_CONTAINER"
+    --parameters "${BICEP_PARAMETERS[@]}"
 
   SNAPSHOT_IDENTITY_CLIENT_ID="$(az deployment group show \
     --resource-group "$RESOURCE_GROUP" \
     --name main \
     --query 'properties.outputs.snapshotManagedIdentityClientId.value' \
+    -o tsv)"
+  SNAPSHOT_STORAGE_ACCOUNT="$(az deployment group show \
+    --resource-group "$RESOURCE_GROUP" \
+    --name main \
+    --query 'properties.outputs.deployedSnapshotStorageAccount.value' \
     -o tsv)"
 else
   require_command terraform
@@ -111,9 +134,11 @@ else
     -var="location=$LOCATION"
     -var="resource_group_name=$RESOURCE_GROUP"
     -var="cluster_name=$CLUSTER_NAME"
-    -var="snapshot_storage_account_name=$SNAPSHOT_STORAGE_ACCOUNT"
     -var="snapshot_container_name=$SNAPSHOT_CONTAINER"
   )
+  if [ -n "$SNAPSHOT_STORAGE_ACCOUNT" ]; then
+    TF_ARGS+=(-var="snapshot_storage_account_name=$SNAPSHOT_STORAGE_ACCOUNT")
+  fi
 
   terraform -chdir="$WORKLOAD_DIR/infra/terraform" init -backend=false
   if [ "$AUTO_APPROVE" = "true" ]; then
@@ -123,6 +148,7 @@ else
   fi
 
   SNAPSHOT_IDENTITY_CLIENT_ID="$(terraform -chdir="$WORKLOAD_DIR/infra/terraform" output -raw snapshot_managed_identity_client_id)"
+  SNAPSHOT_STORAGE_ACCOUNT="$(terraform -chdir="$WORKLOAD_DIR/infra/terraform" output -raw snapshot_storage_account_name)"
 fi
 
 echo "Step 2/7: Connecting to AKS and creating the namespace..."

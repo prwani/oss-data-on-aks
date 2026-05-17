@@ -19,7 +19,12 @@ provider "azurerm" {
 
 provider "azapi" {}
 
+data "azurerm_client_config" "current" {}
+
 locals {
+  default_snapshot_storage_account_name = "opssnap${substr(sha1("${data.azurerm_client_config.current.subscription_id}-${var.resource_group_name}-${var.cluster_name}"), 0, 13)}"
+  snapshot_storage_account_name         = var.snapshot_storage_account_name == null ? local.default_snapshot_storage_account_name : lower(trimspace(var.snapshot_storage_account_name))
+
   tags = merge(
     {
       blueprint   = "opensearch-on-aks"
@@ -104,7 +109,7 @@ resource "azapi_resource" "snapshot_storage" {
   count = var.deploy_snapshot_storage ? 1 : 0
 
   type      = "Microsoft.Storage/storageAccounts@2023-05-01"
-  name      = var.snapshot_storage_account_name
+  name      = local.snapshot_storage_account_name
   parent_id = data.azurerm_resource_group.aks_platform.id
   location  = module.aks_platform.location
   tags      = local.tags

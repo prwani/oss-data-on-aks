@@ -3,7 +3,8 @@ location                      = "swedencentral"
 resource_group_name           = "rg-opensearch-aks-dev"
 cluster_name                  = "aks-opensearch-dev"
 deploy_snapshot_storage       = true
-snapshot_storage_account_name = "opssnapdev001"
+# Optional. Leave unset to use the deterministic generated default.
+# snapshot_storage_account_name = "opssnap<unique-suffix>"
 snapshot_container_name       = "opensearch-snapshots"
 tags = {
   owner = "data-platform-team"

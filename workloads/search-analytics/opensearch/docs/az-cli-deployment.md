@@ -17,7 +17,6 @@ export LOCATION=eastus
 export RESOURCE_GROUP=rg-opensearch-aks-dev
 export CLUSTER_NAME=aks-opensearch-dev
 export DEPLOYMENT_NAME=opensearch-infra
-export SNAPSHOT_STORAGE_ACCOUNT=opssnapdev001
 export SNAPSHOT_CONTAINER=opensearch-snapshots
 export OPENSEARCH_HELM_VERSION=3.6.0
 export OPENSEARCH_DASHBOARDS_HELM_VERSION=3.2.0
@@ -39,12 +38,13 @@ az deployment group create \
   --parameters \
       clusterName="$CLUSTER_NAME" \
       location="$LOCATION" \
-      snapshotStorageAccountName="$SNAPSHOT_STORAGE_ACCOUNT" \
       snapshotContainerName="$SNAPSHOT_CONTAINER"
 ```
 
 This path relies on the shared AVM wrapper for the AKS baseline and optionally creates an Azure Storage account and container for snapshot use.
+The wrapper generates a deterministic globally unique snapshot storage account name by default; pass `snapshotStorageAccountName` only when you need to reuse or enforce a specific account name.
 When snapshot storage is enabled, the wrapper also enables AKS workload identity, creates a user-assigned managed identity plus federated credentials for the manager and data service accounts, and disables shared-key access on the starter storage account.
+If a recently deleted storage account name is still retained by Azure, use the explicit storage account name override for the recreated environment.
 The checked-in wrappers provision `systempool`, `osmgr`, and `osdata`. The dedicated `osmgr` and `osdata` pools start with three nodes each so the default Helm anti-affinity rules can place all manager and data replicas.
 
 ## Option B: Terraform wrapper
@@ -59,6 +59,7 @@ terraform apply
 ```
 
 The example `terraform.tfvars.example` wires the same baseline and optional snapshot storage account through the shared Terraform wrapper.
+Leave `snapshot_storage_account_name` unset to use Terraform's deterministic generated default, or set it only when you need to reuse or enforce a specific globally unique account name.
 When snapshot storage is enabled, Terraform also creates the managed identity, federated credentials, and container-scoped RBAC assignment needed for the keyless snapshot path.
 
 ## Collect the snapshot workload identity output
@@ -72,9 +73,15 @@ export SNAPSHOT_IDENTITY_CLIENT_ID="$(az deployment group show \
   --name "$DEPLOYMENT_NAME" \
   --query 'properties.outputs.snapshotManagedIdentityClientId.value' \
   -o tsv)"
+export SNAPSHOT_STORAGE_ACCOUNT="$(az deployment group show \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$DEPLOYMENT_NAME" \
+  --query 'properties.outputs.deployedSnapshotStorageAccount.value' \
+  -o tsv)"
 
 # Terraform
 export SNAPSHOT_IDENTITY_CLIENT_ID="$(terraform output -raw snapshot_managed_identity_client_id)"
+export SNAPSHOT_STORAGE_ACCOUNT="$(terraform output -raw snapshot_storage_account_name)"
 ```
 
 If you disabled snapshot storage here, create an equivalent user-assigned managed identity, matching federated credentials, and a `Storage Blob Data Contributor` assignment for your existing snapshot container before continuing.

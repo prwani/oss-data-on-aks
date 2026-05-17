@@ -6,8 +6,11 @@ param clusterName string = 'aks-opensearch-dev'
 @description('Azure region for supporting resources.')
 param location string = resourceGroup().location
 
-@description('Globally unique storage account name used for snapshot artifacts.')
-param snapshotStorageAccountName string = 'opssnapdev001'
+@description('Optional tags to apply to Azure resources created by this template.')
+param tags object = {}
+
+@description('Globally unique storage account name used for snapshot artifacts. Defaults to a deterministic name with a subscription, resource group, and cluster-specific suffix.')
+param snapshotStorageAccountName string = take('opssnap${uniqueString(subscription().subscriptionId, resourceGroup().name, clusterName)}', 24)
 
 @description('Container name for OpenSearch snapshots.')
 param snapshotContainerName string = 'opensearch-snapshots'
@@ -47,6 +50,17 @@ var deploymentScriptSubnetName = 'snet-deployment-script'
 var clusterIdentityName = 'id-${clusterName}-aks'
 var deploymentScriptIdentityName = 'id-${clusterName}-portal-secure-deploy'
 var deploymentScriptStorageAccountName = take('st${uniqueString(resourceGroup().id, clusterName, 'script')}', 24)
+var secureResourceTags = union(tags, {
+  workload: 'opensearch'
+  blueprint: 'opensearch-on-aks'
+  securityProfile: 'secure'
+})
+var deploymentScriptTags = union(secureResourceTags, {
+  purpose: 'portal-full-deployment'
+})
+var deploymentScriptStorageTags = union(secureResourceTags, {
+  purpose: 'deployment-script'
+})
 var aksClusterAdminRoleDefinitionId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   '0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8'
@@ -59,11 +73,7 @@ var networkContributorRoleDefinitionId = subscriptionResourceId(
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: virtualNetworkName
   location: location
-  tags: {
-    workload: 'opensearch'
-    blueprint: 'opensearch-on-aks'
-    securityProfile: 'secure'
-  }
+  tags: secureResourceTags
   properties: {
     addressSpace: {
       addressPrefixes: [
@@ -108,11 +118,7 @@ resource deploymentScriptSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-
 resource clusterIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: clusterIdentityName
   location: location
-  tags: {
-    workload: 'opensearch'
-    blueprint: 'opensearch-on-aks'
-    securityProfile: 'secure'
-  }
+  tags: secureResourceTags
 }
 
 resource clusterIdentityNetworkContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -132,12 +138,7 @@ resource deploymentScriptStorage 'Microsoft.Storage/storageAccounts@2023-05-01' 
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
-  tags: {
-    workload: 'opensearch'
-    blueprint: 'opensearch-on-aks'
-    securityProfile: 'secure'
-    purpose: 'deployment-script'
-  }
+  tags: deploymentScriptStorageTags
   properties: {
     allowSharedKeyAccess: true
     allowBlobPublicAccess: false
@@ -156,6 +157,7 @@ module opensearchBaseline '../bicep/main.bicep' = {
   params: {
     clusterName: clusterName
     location: location
+    tags: tags
     deploySnapshotStorage: true
     snapshotStorageAccountName: snapshotStorageAccountName
     snapshotContainerName: snapshotContainerName
@@ -184,11 +186,7 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2025-10-01' exis
 resource deploymentScriptIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: deploymentScriptIdentityName
   location: location
-  tags: {
-    workload: 'opensearch'
-    blueprint: 'opensearch-on-aks'
-    purpose: 'portal-full-deployment'
-  }
+  tags: deploymentScriptTags
 }
 
 resource deploymentScriptAksAdminRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

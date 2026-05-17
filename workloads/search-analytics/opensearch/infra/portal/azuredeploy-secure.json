@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "7538910523977653207"
+      "templateHash": "16976672517255428213"
     }
   },
   "parameters": {
@@ -23,11 +23,18 @@
         "description": "Azure region for supporting resources."
       }
     },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Optional tags to apply to Azure resources created by this template."
+      }
+    },
     "snapshotStorageAccountName": {
       "type": "string",
-      "defaultValue": "opssnapdev001",
+      "defaultValue": "[take(format('opssnap{0}', uniqueString(subscription().subscriptionId, resourceGroup().name, parameters('clusterName'))), 24)]",
       "metadata": {
-        "description": "Globally unique storage account name used for snapshot artifacts."
+        "description": "Globally unique storage account name used for snapshot artifacts. Defaults to a deterministic name with a subscription, resource group, and cluster-specific suffix."
       }
     },
     "snapshotContainerName": {
@@ -108,6 +115,9 @@
     "clusterIdentityName": "[format('id-{0}-aks', parameters('clusterName'))]",
     "deploymentScriptIdentityName": "[format('id-{0}-portal-secure-deploy', parameters('clusterName'))]",
     "deploymentScriptStorageAccountName": "[take(format('st{0}', uniqueString(resourceGroup().id, parameters('clusterName'), 'script')), 24)]",
+    "secureResourceTags": "[union(parameters('tags'), createObject('workload', 'opensearch', 'blueprint', 'opensearch-on-aks', 'securityProfile', 'secure'))]",
+    "deploymentScriptTags": "[union(variables('secureResourceTags'), createObject('purpose', 'portal-full-deployment'))]",
+    "deploymentScriptStorageTags": "[union(variables('secureResourceTags'), createObject('purpose', 'deployment-script'))]",
     "aksClusterAdminRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8')]",
     "networkContributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4d97b98b-1d4f-4787-a291-c67834d212e7')]"
   },
@@ -117,11 +127,7 @@
       "apiVersion": "2024-05-01",
       "name": "[variables('virtualNetworkName')]",
       "location": "[parameters('location')]",
-      "tags": {
-        "workload": "opensearch",
-        "blueprint": "opensearch-on-aks",
-        "securityProfile": "secure"
-      },
+      "tags": "[variables('secureResourceTags')]",
       "properties": {
         "addressSpace": {
           "addressPrefixes": [
@@ -157,11 +163,7 @@
       "apiVersion": "2023-01-31",
       "name": "[variables('clusterIdentityName')]",
       "location": "[parameters('location')]",
-      "tags": {
-        "workload": "opensearch",
-        "blueprint": "opensearch-on-aks",
-        "securityProfile": "secure"
-      }
+      "tags": "[variables('secureResourceTags')]"
     },
     {
       "type": "Microsoft.Authorization/roleAssignments",
@@ -187,12 +189,7 @@
         "name": "Standard_LRS"
       },
       "kind": "StorageV2",
-      "tags": {
-        "workload": "opensearch",
-        "blueprint": "opensearch-on-aks",
-        "securityProfile": "secure",
-        "purpose": "deployment-script"
-      },
+      "tags": "[variables('deploymentScriptStorageTags')]",
       "properties": {
         "allowSharedKeyAccess": true,
         "allowBlobPublicAccess": false,
@@ -210,11 +207,7 @@
       "apiVersion": "2023-01-31",
       "name": "[variables('deploymentScriptIdentityName')]",
       "location": "[parameters('location')]",
-      "tags": {
-        "workload": "opensearch",
-        "blueprint": "opensearch-on-aks",
-        "purpose": "portal-full-deployment"
-      }
+      "tags": "[variables('deploymentScriptTags')]"
     },
     {
       "type": "Microsoft.Authorization/roleAssignments",
@@ -329,6 +322,9 @@
           "location": {
             "value": "[parameters('location')]"
           },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
           "deploySnapshotStorage": {
             "value": true
           },
@@ -367,7 +363,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "4372980050071199450"
+              "templateHash": "10565631199619792467"
             }
           },
           "parameters": {
@@ -385,6 +381,13 @@
                 "description": "Azure region for supporting resources."
               }
             },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply to Azure resources created by this template."
+              }
+            },
             "deploySnapshotStorage": {
               "type": "bool",
               "defaultValue": true,
@@ -394,9 +397,9 @@
             },
             "snapshotStorageAccountName": {
               "type": "string",
-              "defaultValue": "opssnapdev001",
+              "defaultValue": "[take(format('opssnap{0}', uniqueString(subscription().subscriptionId, resourceGroup().name, parameters('clusterName'))), 24)]",
               "metadata": {
-                "description": "Globally unique storage account name used for snapshot artifacts."
+                "description": "Globally unique storage account name used for snapshot artifacts. Defaults to a deterministic name with a subscription, resource group, and cluster-specific suffix."
               }
             },
             "snapshotContainerName": {
@@ -444,6 +447,7 @@
             "snapshotManagerServiceAccountSubject": "[format('system:serviceaccount:{0}:{1}', variables('snapshotServiceAccountNamespace'), variables('snapshotManagerServiceAccountName'))]",
             "snapshotDataServiceAccountSubject": "[format('system:serviceaccount:{0}:{1}', variables('snapshotServiceAccountNamespace'), variables('snapshotDataServiceAccountName'))]",
             "snapshotManagedIdentityName": "[format('id-{0}-snapshots', parameters('clusterName'))]",
+            "resourceTags": "[union(parameters('tags'), createObject('workload', 'opensearch', 'blueprint', 'opensearch-on-aks'))]",
             "storageBlobDataContributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
             "primaryAgentPoolProfiles": [
               {
@@ -497,10 +501,7 @@
                 "name": "Standard_LRS"
               },
               "kind": "StorageV2",
-              "tags": {
-                "workload": "opensearch",
-                "blueprint": "opensearch-on-aks"
-              },
+              "tags": "[variables('resourceTags')]",
               "properties": {
                 "allowBlobPublicAccess": false,
                 "allowSharedKeyAccess": false,
@@ -536,10 +537,7 @@
               "apiVersion": "2023-01-31",
               "name": "[variables('snapshotManagedIdentityName')]",
               "location": "[parameters('location')]",
-              "tags": {
-                "workload": "opensearch",
-                "blueprint": "opensearch-on-aks"
-              }
+              "tags": "[variables('resourceTags')]"
             },
             "snapshotManagerFederatedCredential": {
               "condition": "[parameters('deploySnapshotStorage')]",
@@ -617,6 +615,9 @@
                   "enableWorkloadIdentity": {
                     "value": true
                   },
+                  "tags": {
+                    "value": "[variables('resourceTags')]"
+                  },
                   "managedIdentities": {
                     "value": "[parameters('managedIdentities')]"
                   },
@@ -641,7 +642,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.39.26.7824",
-                      "templateHash": "8979594402638532417"
+                      "templateHash": "13955422296569920544"
                     }
                   },
                   "parameters": {
@@ -656,6 +657,13 @@
                       "defaultValue": "[resourceGroup().location]",
                       "metadata": {
                         "description": "Azure region for the AKS deployment."
+                      }
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Optional tags to apply to the AKS resources."
                       }
                     },
                     "dnsPrefix": {
@@ -771,6 +779,9 @@
                           },
                           "location": {
                             "value": "[parameters('location')]"
+                          },
+                          "tags": {
+                            "value": "[parameters('tags')]"
                           },
                           "dnsPrefix": {
                             "value": "[parameters('dnsPrefix')]"

@@ -6,8 +6,11 @@ param clusterName string = 'aks-opensearch-dev'
 @description('Azure region for supporting resources.')
 param location string = resourceGroup().location
 
-@description('Globally unique storage account name used for snapshot artifacts.')
-param snapshotStorageAccountName string = 'opssnapdev001'
+@description('Optional tags to apply to Azure resources created by this template.')
+param tags object = {}
+
+@description('Globally unique storage account name used for snapshot artifacts. Defaults to a deterministic name with a subscription, resource group, and cluster-specific suffix.')
+param snapshotStorageAccountName string = take('opssnap${uniqueString(subscription().subscriptionId, resourceGroup().name, clusterName)}', 24)
 
 @description('Container name for OpenSearch snapshots.')
 param snapshotContainerName string = 'opensearch-snapshots'
@@ -30,6 +33,11 @@ param opensearchDashboardsHelmVersion string = '3.2.0'
 param deploymentScriptForceUpdateTag string = utcNow()
 
 var deploymentScriptIdentityName = 'id-${clusterName}-portal-deploy'
+var portalResourceTags = union(tags, {
+  workload: 'opensearch'
+  blueprint: 'opensearch-on-aks'
+  purpose: 'portal-full-deployment'
+})
 var aksClusterAdminRoleDefinitionId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   '0ab0b1a8-8aac-4efd-b8c2-3ee1fb270be8'
@@ -40,6 +48,7 @@ module opensearchBaseline '../bicep/main.bicep' = {
   params: {
     clusterName: clusterName
     location: location
+    tags: tags
     deploySnapshotStorage: true
     snapshotStorageAccountName: snapshotStorageAccountName
     snapshotContainerName: snapshotContainerName
@@ -53,11 +62,7 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2025-10-01' exis
 resource deploymentScriptIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: deploymentScriptIdentityName
   location: location
-  tags: {
-    workload: 'opensearch'
-    blueprint: 'opensearch-on-aks'
-    purpose: 'portal-full-deployment'
-  }
+  tags: portalResourceTags
 }
 
 resource deploymentScriptAksAdminRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

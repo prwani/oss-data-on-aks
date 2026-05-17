@@ -6,13 +6,13 @@ If you want the portal to run the full deployment, use the checked-in full templ
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-full.json)
 
-The full template asks for an OpenSearch admin password, deploys the Azure baseline, and then uses an Azure deployment script to run the Kubernetes namespace, secret, Helm, readiness, and snapshot repository steps. If you only want the Azure baseline and prefer to run the Kubernetes and Helm steps yourself, use `infra/portal/azuredeploy.json`.
+The full template asks for an OpenSearch admin password, accepts optional resource tags for Azure resources, deploys the Azure baseline, and then uses an Azure deployment script to run the Kubernetes namespace, secret, Helm, readiness, and snapshot repository steps. If you only want the Azure baseline and prefer to run the Kubernetes and Helm steps yourself, use `infra/portal/azuredeploy.json`.
 
 For a private AKS API server with the same one-click experience, use the secure template:
 
 [![Deploy to Azure (secure)](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprwani%2Foss-data-on-aks%2Fmain%2Fworkloads%2Fsearch-analytics%2Fopensearch%2Finfra%2Fportal%2Fazuredeploy-secure.json)
 
-The secure template creates the VNet, AKS subnet, and Azure Container Instances subnet used by the deployment script. That VNet-integrated script is what allows the portal deployment to continue running `kubectl` and Helm after the AKS API server is private.
+The secure template accepts the same optional resource tags and creates the VNet, AKS subnet, and Azure Container Instances subnet used by the deployment script. That VNet-integrated script is what allows the portal deployment to continue running `kubectl` and Helm after the AKS API server is private.
 
 The secure template also includes a demo-only `exposePublicEndpoints` parameter. Leave it `false` for the private default. If you set it to `true`, the install script publishes both Dashboards and the OpenSearch manager service through public Azure Load Balancers so the blog sample API calls can run from a laptop without VPN or Bastion. This exposes the full authenticated OpenSearch API surface on port `9200`, not only the sample paths.
 

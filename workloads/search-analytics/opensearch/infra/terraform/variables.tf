@@ -29,9 +29,16 @@ variable "deploy_snapshot_storage" {
 }
 
 variable "snapshot_storage_account_name" {
-  description = "Globally unique Azure Storage account name used for snapshot artifacts."
+  description = "Optional globally unique Azure Storage account name used for snapshot artifacts. When null, Terraform generates a deterministic subscription, resource group, and cluster-specific name."
   type        = string
-  default     = "opssnapdev001"
+  default     = null
+
+  validation {
+    condition = var.snapshot_storage_account_name == null || (
+      can(regex("^[a-z0-9]{3,24}$", var.snapshot_storage_account_name))
+    )
+    error_message = "snapshot_storage_account_name must be null or a 3-24 character lowercase alphanumeric Azure Storage account name."
+  }
 }
 
 variable "snapshot_container_name" {

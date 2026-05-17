@@ -6,6 +6,9 @@ param clusterName string
 @description('Azure region for the AKS deployment.')
 param location string = resourceGroup().location
 
+@description('Optional tags to apply to the AKS resources.')
+param tags object = {}
+
 @description('DNS prefix for the AKS API server.')
 param dnsPrefix string = '${clusterName}-dns'
 
@@ -59,6 +62,7 @@ module managedCluster 'br/public:avm/res/container-service/managed-cluster:0.13.
   params: {
     name: clusterName
     location: location
+    tags: tags
     dnsPrefix: dnsPrefix
     primaryAgentPoolProfiles: primaryAgentPoolProfiles
     agentPools: agentPools
