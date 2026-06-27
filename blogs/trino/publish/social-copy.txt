@@ -1,3 +1,3 @@
-New guide: run Trino on AKS with an AKS AVM baseline, a dedicated `trino` node pool, private coordinator access, generated `tpcds` benchmark rows, and an Iceberg/ADLS Gen2 persistence path.
+New guide: run Trino on AKS with an AKS AVM baseline, Apache Polaris as an Iceberg REST catalog, TPCDS persisted to Iceberg on ADLS Gen2, and Apache Superset as the BI layer.
 
-The repo package includes Terraform and Bicep wrappers, pinned Helm values for chart 1.42.1 / Trino 479, and operator guidance for both portal-first and CLI-first teams.
+The repo package includes Terraform and Bicep wrappers, pinned Helm values, post-deployment validation, Trino SQL/API checks, and a Superset quickstart.
