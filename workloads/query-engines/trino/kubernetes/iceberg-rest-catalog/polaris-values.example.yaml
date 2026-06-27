@@ -1,0 +1,55 @@
+# Apache Polaris starter values for an Iceberg REST catalog on AKS.
+# Replace placeholders with infrastructure outputs before deployment.
+
+serviceAccount:
+  create: true
+  name: polaris
+  annotations:
+    azure.workload.identity/client-id: "<lakehouse-identity-client-id>"
+
+podLabels:
+  azure.workload.identity/use: "true"
+
+nodeSelector:
+  agentpool: catalog
+
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: catalog
+    effect: NoSchedule
+
+service:
+  ports:
+    - name: polaris-http
+      port: 8181
+      protocol: TCP
+      targetPort: 8181
+
+persistence:
+  type: relational-jdbc
+  relationalJdbc:
+    secret:
+      name: polaris-postgresql
+      username: username
+      password: password
+      jdbcUrl: jdbcUrl
+
+features:
+  SUPPORTED_CATALOG_STORAGE_TYPES:
+    - AZURE
+
+fileIo:
+  type: default
+
+storage:
+  secret:
+    name: ""
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"

@@ -9,7 +9,7 @@ Use [`../../docs/az-cli-deployment.md`](../../docs/az-cli-deployment.md) as the 
 1. deploy the AKS baseline with the Bicep or Terraform wrapper
 2. connect to the cluster and apply `kubernetes/manifests/namespace.yaml` plus `kubernetes/manifests/managed-csi-premium-storageclass.yaml`
 3. create `superset-postgresql-auth` and `superset-env`
-4. install chart `superset/superset` version `0.15.4`
+4. install chart `superset/superset` version `0.15.5`
 5. wait for `job/superset-init-db` to complete
 6. create the first admin user with `superset fab create-admin`
 7. validate the internal service, worker pods, and PVCs

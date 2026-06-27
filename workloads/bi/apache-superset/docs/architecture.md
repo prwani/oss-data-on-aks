@@ -10,7 +10,7 @@ Superset's data exploration UI is only one part of the system. A healthy deploym
 - Celery workers that run async SQL Lab and background tasks
 - the `superset-init-db` job that upgrades the metadata schema and initializes roles
 - PostgreSQL for metadata, users, dashboards, datasets, and saved queries
-- Redis for cache and Celery message transport
+- Redis for starter cache and Celery message transport
 - network paths from Superset to external query engines and data sources
 
 ## Recommended reference architecture
@@ -49,8 +49,9 @@ Superset's data exploration UI is only one part of the system. A healthy deploym
 | Async execution | Separate Celery workers from the web tier | Prevents long-running queries from competing directly with the UI |
 | Metadata DB | Chart-managed PostgreSQL for the starter | Acceptable scope boundary as long as backups and growth are reviewed |
 | Cache and queue | Chart-managed Redis for the starter | Required for cache behavior and worker messaging |
+| Production cache | Azure Managed Redis | Recommended when cache and Celery broker requirements outgrow the starter dependency |
 | Init and migrations | Treat `superset-init-db` as a first-class health check | The rollout is not healthy until the hook job succeeds |
-| Data-source connectivity | Create connections after install | Superset needs outbound reachability and runtime secrets for target systems |
+| Data-source connectivity | Connect to Trino's `iceberg` catalog after install | Superset should query persisted Iceberg tables in ADLS Gen2, not generated `tpcds` rows |
 | Azure Storage integrations | Keep them out of the starter and use workload identity later | Do not introduce shared keys or account-key secrets |
 
 ## AKS-specific guidance
@@ -65,7 +66,7 @@ The Helm chart's hook job runs `superset db upgrade` and `superset init`. Unlike
 
 ### 3. Metadata and cache are stateful even when the UI is not
 
-The web and worker pods are replaceable. PostgreSQL and Redis are not. The starter therefore uses `managed-csi-premium` PVCs for both dependencies and treats the metadata database as the source of truth for dashboards, saved queries, users, and role mappings.
+The web and worker pods are replaceable. PostgreSQL and Redis are not. The starter therefore uses `managed-csi-premium` PVCs for both dependencies and treats the metadata database as the source of truth for dashboards, saved queries, users, and role mappings. For production-scale cache and queue needs, move Redis to Azure Managed Redis or another externally operated Redis-compatible service.
 
 ### 4. Internal-only access is the safer default
 
@@ -88,3 +89,19 @@ Celery beat and Flower stay disabled in the starter because scheduled reports an
 | Redis | 1 | 250m CPU / 512 MiB plus 8 GiB PVC | Cache and Celery transport |
 
 These are starter values for evaluation and smaller team environments. Scale the `superset` node pool, worker count, and metadata services based on query concurrency, dashboard traffic, retained metadata, and the number of external data sources.
+
+## Trino/Iceberg datasource
+
+After Trino materializes TPCDS into Iceberg on ADLS Gen2, add a Superset database connection that targets the persisted Iceberg schema:
+
+```text
+trino://<user>@<trino-host>:8080/iceberg/tpcds_sf1
+```
+
+Use SQL Lab to validate:
+
+```sql
+SELECT c_customer_sk, c_first_name, c_last_name
+FROM iceberg.tpcds_sf1.customer
+LIMIT 100;
+```

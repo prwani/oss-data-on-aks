@@ -49,7 +49,7 @@ Mirror the AVM-oriented design decisions:
 | Node pool name | `superset` |
 | Mode | `User` |
 | Node count | `3` |
-| VM size | `Standard_D4s_v5` |
+| VM size | `Standard_D4s_v6` |
 | Taint | `dedicated=superset:NoSchedule` |
 | Label | `workload=apache-superset` |
 
@@ -100,7 +100,7 @@ helm repo add superset https://apache.github.io/superset
 helm repo update
 
 helm upgrade --install superset superset/superset \
-  --version 0.15.4 \
+  --version 0.15.5 \
   --namespace superset \
   --values workloads/bi/apache-superset/kubernetes/helm/superset-values.yaml
 ```

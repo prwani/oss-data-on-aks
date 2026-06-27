@@ -1,0 +1,35 @@
+# Environment-specific override for Trino + Iceberg REST + ADLS Gen2.
+# Replace the placeholders with outputs from the Trino infrastructure deployment
+# before using this file in a real environment.
+
+serviceAccount:
+  create: true
+  name: trino
+  annotations:
+    azure.workload.identity/client-id: "<lakehouse-identity-client-id>"
+
+coordinator:
+  labels:
+    azure.workload.identity/use: "true"
+
+worker:
+  labels:
+    azure.workload.identity/use: "true"
+
+catalogs:
+  tpcds: |
+    connector.name=tpcds
+    tpcds.splits-per-node=16
+  iceberg: |
+    connector.name=iceberg
+    iceberg.catalog.type=rest
+    iceberg.rest-catalog.uri=http://polaris.iceberg-catalog.svc.cluster.local:8181/api/catalog
+    iceberg.rest-catalog.warehouse=lakehouse
+    iceberg.rest-catalog.security=OAUTH2
+    iceberg.rest-catalog.oauth2.credential=<polaris-client-id>:<polaris-client-secret>
+    iceberg.rest-catalog.oauth2.scope=PRINCIPAL_ROLE:ALL
+    iceberg.rest-catalog.oauth2.server-uri=http://polaris.iceberg-catalog.svc.cluster.local:8181/api/catalog/v1/oauth/tokens
+    iceberg.rest-catalog.vended-credentials-enabled=true
+    iceberg.file-format=PARQUET
+    fs.native-azure.enabled=true
+    azure.auth-type=DEFAULT

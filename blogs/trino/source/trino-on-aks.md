@@ -1,170 +1,312 @@
-# Running Trino on AKS with AKS AVM, Helm, and a private SQL endpoint
+# Getting started with Trino on AKS with AKS AVM, Iceberg, and Superset
 
 **Publication target:** Microsoft TechCommunity > Azure > Linux and Open Source Blog
 
 ## Summary
 
-Trino is one of the fastest ways to turn a Kubernetes cluster into a distributed SQL engine, but the jump from a demo to a reusable Azure-first blueprint is bigger than a single `helm install`. In this post, I walk through a starter pattern for running Trino on Azure Kubernetes Service (AKS) with an AKS Azure Verified Modules (AVM) baseline, a dedicated `trino` node pool, private-by-default service exposure, and a concrete `tpch` catalog so the cluster is usable on day one.
+TODO: Introduce the goal of the post: deploy an Azure baseline for Trino on AKS, then use Helm and Kubernetes-native steps to install Trino, Apache Polaris as the Iceberg REST catalog, materialize TPCDS into Iceberg on ADLS Gen2, and connect Apache Superset as a BI experience.
 
-The goal is not to pretend every production concern is solved. The goal is to give platform teams a clean starter blueprint that does not collapse into a lab-only setup the moment query memory, node placement, or catalog onboarding starts to matter.
+## What we are building
 
-## Why Trino on AKS is worth standardizing
+TODO: Explain that the "Deploy to Azure" experience provisions the Azure baseline only. The Trino, Polaris, TPCDS, and Superset steps remain explicit in the blog so readers can see and learn the Kubernetes and Helm operations.
 
-Trino fits well on AKS when teams want:
+The target flow for the blog is:
 
-- Kubernetes-native lifecycle management
-- Azure-native cluster creation and managed identity options
-- repeatable node-pool placement for coordinator and workers
-- a clear contract for connector and catalog rollout
-- private access patterns for an internal query endpoint
+1. Deploy the Azure baseline with AKS AVM.
+2. Connect to the AKS cluster.
+3. Install Apache Polaris with PostgreSQL-backed metadata.
+4. Install Trino with the TPCDS source catalog and Iceberg REST catalog.
+5. Materialize selected TPCDS SF1 tables into Iceberg on ADLS Gen2.
+6. Install Apache Superset and connect it to Trino.
+7. Validate with SQL, ADLS file listings, and a Superset query.
 
-The challenge is that Trino is not just another stateless microservice with a few more replicas. The coordinator and worker roles are different, memory settings matter, large joins can spill to disk, and catalogs are part of the runtime design rather than an optional afterthought.
+## Architecture
 
-## Why this is not a typical AKS microservice
-
-This is the point I want readers to notice early: **Trino on AKS is not a generic HTTP service**.
-
-A typical microservice might look like this:
-
-- one pod type
-- a public or internal service
-- horizontal replicas with mostly interchangeable behavior
-- durable state stored elsewhere
-
-Trino is different:
-
-- the **coordinator** parses SQL, plans stages, schedules work, and tracks cluster health
-- the **workers** execute scans, joins, aggregations, and data exchange
-- query success depends on **heap sizing, query memory limits, and spill-to-disk settings**
-- **catalog files** define what data the engine can actually reach
-
-That is why the checked-in blueprint keeps the service private by default, pins memory settings, uses a dedicated node pool, and ships a starter `tpch` catalog.
-
-## What the repo now provides
-
-The Trino workload in the repo is organized around five practical building blocks:
-
-1. a shared AKS baseline under `platform/aks-avm`
-2. workload wrappers for Terraform and Bicep under `workloads/query-engines/trino/infra`
-3. deployment guidance for portal-first and CLI-first operators under `workloads/query-engines/trino/docs`
-4. Helm values and namespace assets under `workloads/query-engines/trino/kubernetes`
-5. publish-ready blog assets under `blogs/trino`
-
-That split is intentional. It keeps the AKS platform baseline reusable while still letting the Trino workload own its chart values, query-engine guidance, and validation commands.
-
-## Checked-in version contract
-
-These are the repo-backed versions this walkthrough currently matches.
-
-| Component | Checked-in version | Evidence in repo |
-| --- | --- | --- |
-| Helm chart | `trino/trino` `1.42.1` | `workloads/query-engines/trino/kubernetes/helm/README.md` |
-| Runtime image tag | `479` | `workloads/query-engines/trino/kubernetes/helm/trino-values.yaml` |
-
-
-## The target architecture
+TODO: Add the final architecture narrative and diagram.
 
 ![Trino on AKS architecture](../assets/trino-on-aks-architecture.svg)
 
-*The starter blueprint uses one dedicated `trino` user pool with three nodes, a single coordinator, three workers, a private `ClusterIP` service, and a `tpch` catalog for smoke testing.*
+## Prerequisites
 
-| Layer | Recommendation | Why |
-| --- | --- | --- |
-| AKS baseline | Shared AVM wrapper | Keeps cluster creation consistent across workloads |
-| Dedicated pool | `trino` user pool with 3 nodes | Separates distributed query work from AKS system pods |
-| Coordinator | 1 replica | Preserves planning and scheduling capacity |
-| Workers | 3 replicas | Gives predictable parallelism and matches the node count |
-| Service exposure | `ClusterIP` only by default | Keeps the SQL endpoint private |
-| Catalog | `tpch` | Makes the blueprint runnable without external data systems |
-| Spill path | worker `emptyDir` volume | Handles large-memory queries more safely |
+TODO: Add prerequisites for Azure CLI, kubectl, Helm, permissions, AKS quota, and region selection.
 
-## Step 1: Deploy or align the AKS baseline
+## Step 1: Deploy the Azure baseline
 
-The repo keeps both IaC options visible because different teams standardize differently.
+TODO: Add the baseline "Deploy to Azure" button once the portal template exists.
 
-### Bicep path
+The baseline should provision:
 
-```bash
-export LOCATION=eastus
-export RESOURCE_GROUP=rg-trino-aks-dev
-export CLUSTER_NAME=aks-trino-dev
+- ADLS Gen2 storage with hierarchical namespace enabled
+- a user-assigned managed identity for lakehouse access
+- workload identity federation for Trino and Polaris service accounts
+- AKS through the AKS AVM wrapper
+- dedicated node pools for `trino`, `catalog`, and optionally `superset`
+- Azure Database for PostgreSQL Flexible Server for Polaris metadata
 
-az group create --name "$RESOURCE_GROUP" --location "$LOCATION"
+## Step 2: Connect to AKS
 
-az deployment group create --resource-group "$RESOURCE_GROUP" --template-file workloads/query-engines/trino/infra/bicep/main.bicep --parameters clusterName="$CLUSTER_NAME" location="$LOCATION"
-```
+TODO: Add the final command sequence for `az aks get-credentials`, namespace creation, and local tooling expectations.
 
-### Terraform path
+## Step 3: Install Apache Polaris as the Iceberg REST catalog
 
-```bash
-cd workloads/query-engines/trino/infra/terraform
-cp terraform.tfvars.example terraform.tfvars
+TODO: Add the Polaris Helm install, PostgreSQL secret creation, root realm bootstrap, catalog creation, Trino principal creation, and role grants. Keep secrets out of source control and show placeholders only.
 
-terraform init
-terraform plan
-terraform apply
-```
+## Step 4: Install Trino
 
-Both wrappers create `systempool` plus a dedicated `trino` user pool with three nodes and the `dedicated=trino:NoSchedule` taint.
+TODO: Add the Trino Helm install and the Iceberg/ADLS override flow.
 
-## Step 2: Connect to AKS and install Trino
+## Step 5: Validate the deployment
 
-Once the cluster is ready, connect to it and create the namespace:
+At minimum, validate the node pools, pod health, service shape, Trino catalogs, Polaris catalog access, and Superset rollout.
 
 ```bash
-az aks get-credentials --resource-group "$RESOURCE_GROUP" --name "$CLUSTER_NAME"
+kubectl get nodes -L agentpool
 
-kubectl apply -f workloads/query-engines/trino/kubernetes/manifests/namespace.yaml
+kubectl get pods -n iceberg-catalog
+kubectl get pods -n trino
+kubectl get pods -n superset
+
+kubectl get svc -n trino
+kubectl get svc -n superset
 ```
 
-Then install Trino with the pinned chart version:
+For the expected AKS shape, you should see separate node pools for the query engine, catalog service, and BI layer:
+
+```text
+AGENTPOOL
+systempool
+trino
+catalog
+superset
+```
+
+The Trino coordinator and workers should be running:
 
 ```bash
-helm repo add trino https://trinodb.github.io/charts/
-helm repo update
-
-helm upgrade --install trino trino/trino --version 1.42.1 --namespace trino --values workloads/query-engines/trino/kubernetes/helm/trino-values.yaml
+kubectl get pods -n trino
 ```
 
-The checked-in values do three important things:
+Expected shape:
 
-1. keep the coordinator service on `ClusterIP`
-2. keep the catalog surface to `tpch`
-3. configure worker spill space on `emptyDir` so large joins and sorts have a defined path to disk
+```text
+trino-coordinator-...   1/1   Running
+trino-worker-...        1/1   Running
+trino-worker-...        1/1   Running
+trino-worker-...        1/1   Running
+```
 
-## Step 3: Validate with the `tpch` catalog
-
-I like the `tpch` catalog here because it proves the cluster works without needing an external metastore, lakehouse, or data warehouse first.
+Validate the Trino catalogs:
 
 ```bash
-kubectl get deploy,pods,svc -n trino
-
-kubectl exec deploy/trino-coordinator -n trino -- trino --execute "SHOW CATALOGS"
-
-kubectl exec deploy/trino-coordinator -n trino -- trino --execute "SELECT count(*) AS nations FROM tpch.tiny.nation"
+kubectl exec deploy/trino-coordinator -n trino -- \
+  trino --execute "SHOW CATALOGS"
 ```
 
-For private access validation from an operator workstation:
+Expected output includes:
+
+```text
+"iceberg"
+"system"
+"tpcds"
+```
+
+Validate the Iceberg REST catalog path:
+
+```bash
+kubectl exec deploy/trino-coordinator -n trino -- \
+  trino --execute "SHOW SCHEMAS FROM iceberg"
+```
+
+After the TPCDS materialization step, the output should include:
+
+```text
+"tpcds_sf1"
+```
+
+Validate the persisted row counts:
+
+```bash
+kubectl exec deploy/trino-coordinator -n trino -- trino --execute "
+SELECT 'customer' AS table_name, count(*) AS rows FROM iceberg.tpcds_sf1.customer
+UNION ALL SELECT 'date_dim', count(*) FROM iceberg.tpcds_sf1.date_dim
+UNION ALL SELECT 'item', count(*) FROM iceberg.tpcds_sf1.item
+UNION ALL SELECT 'store_sales', count(*) FROM iceberg.tpcds_sf1.store_sales
+ORDER BY table_name"
+```
+
+For TPCDS scale factor 1, the starter tables should return:
+
+```text
+"customer","100000"
+"date_dim","73049"
+"item","18000"
+"store_sales","2880404"
+```
+
+Use ADLS Gen2 listing with Microsoft Entra authentication to confirm that Iceberg metadata and Parquet data files exist without using storage keys:
+
+```bash
+az storage fs file list \
+  --account-name <storage-account-name> \
+  --file-system lakehouse \
+  --path iceberg/warehouse/tpcds_sf1 \
+  --auth-mode login \
+  -o table
+```
+
+You should see table directories with `data` and `metadata` children, including `.parquet`, `.metadata.json`, `.avro`, and `.stats` files.
+
+## Step 6: Exercise Trino SQL and API access
+
+The TPCDS connector proves that Trino can generate benchmark rows, but the more important validation is querying persisted Iceberg data in ADLS Gen2.
+
+First, run a small query against the generated source catalog:
+
+```bash
+kubectl exec deploy/trino-coordinator -n trino -- \
+  trino --execute "SELECT count(*) AS customers FROM tpcds.tiny.customer"
+```
+
+Then query the persisted Iceberg tables:
+
+```bash
+kubectl exec deploy/trino-coordinator -n trino -- trino --execute "
+SELECT i.i_category, count(*) AS rows
+FROM iceberg.tpcds_sf1.store_sales ss
+JOIN iceberg.tpcds_sf1.item i
+  ON ss.ss_item_sk = i.i_item_sk
+GROUP BY i.i_category
+ORDER BY rows DESC
+LIMIT 5"
+```
+
+The result should look similar to:
+
+```text
+"Music                                             ","299529"
+"Shoes                                             ","294887"
+"Electronics                                       ","288475"
+"Women                                             ","286442"
+"Sports                                            ","286124"
+```
+
+For API validation without exposing Trino publicly, use port-forward:
 
 ```bash
 kubectl port-forward svc/trino 8080:8080 -n trino
 curl http://127.0.0.1:8080/v1/info
 ```
 
-If a team needs multi-user access inside a private network, the better override is an **internal** Azure load balancer, not a public endpoint.
+Keep the Trino service private for normal use. If multiple users need access from a private network, prefer an internal Azure Load Balancer or private ingress pattern rather than exposing the coordinator publicly.
 
-## Where the AKS-specific decisions matter
+## Step 7: Superset quickstart
 
-The Azure-specific value of this blueprint is not just “Trino on Kubernetes.” It is the combination of AKS decisions around:
+Apache Superset is optional for the Trino workload, but it is a useful way to prove that the Iceberg tables are consumable from a BI tool. In this starter flow, Superset runs in AKS with chart-managed PostgreSQL and Redis. For production-scale cache and Celery broker requirements, use Azure Managed Redis or another externally operated Redis-compatible service.
 
-- a reusable AVM cluster baseline
-- node-pool isolation for distributed query work
-- private-by-default service exposure
-- source-controlled Helm values for memory and spill settings
-- a clean path for future Azure Storage-backed catalogs via managed identity
+Install Superset from the repo assets:
 
-That last point is especially important. The starter blueprint intentionally stops at `tpch`, but the next real step for many teams is Iceberg or Hive on Azure Storage. When that happens, the repo guidance is explicit: use workload identity and managed identity-based storage access, not shared keys embedded in catalog files.
+```bash
+kubectl apply -f workloads/bi/apache-superset/kubernetes/manifests/namespace.yaml
 
-## Final thoughts
+kubectl create secret generic superset-postgresql-auth -n superset \
+  --from-literal=password="$SUPERSET_POSTGRES_PASSWORD"
 
-Trino is easy to demo. What teams usually need is something a little more durable than a demo and a lot less opinionated than a one-off bespoke platform build. This AKS starter blueprint is meant to sit in that middle ground: one dedicated query pool, one private coordinator service, one runnable catalog, and enough documentation to move cleanly from portal validation to source-controlled deployment.
+kubectl create secret generic superset-env -n superset \
+  --from-literal=DB_HOST="superset-postgresql" \
+  --from-literal=DB_PORT="5432" \
+  --from-literal=DB_USER="superset" \
+  --from-literal=DB_PASS="$SUPERSET_POSTGRES_PASSWORD" \
+  --from-literal=DB_NAME="superset" \
+  --from-literal=REDIS_HOST="superset-redis-headless" \
+  --from-literal=REDIS_PORT="6379" \
+  --from-literal=REDIS_PROTO="redis" \
+  --from-literal=REDIS_DB="1" \
+  --from-literal=REDIS_CELERY_DB="0" \
+  --from-literal=SUPERSET_SECRET_KEY="$SUPERSET_SECRET_KEY"
+
+helm repo add superset https://apache.github.io/superset
+helm repo update
+
+helm upgrade --install superset superset/superset \
+  --version 0.15.5 \
+  --namespace superset \
+  --values workloads/bi/apache-superset/kubernetes/helm/superset-values.yaml
+```
+
+Wait for the database migration job and deployments:
+
+```bash
+kubectl wait --for=condition=complete job/superset-init-db -n superset --timeout=25m
+kubectl wait --for=condition=available deployment/superset -n superset --timeout=10m
+kubectl wait --for=condition=available deployment/superset-worker -n superset --timeout=10m
+```
+
+Create the first administrator:
+
+```bash
+kubectl exec -n superset deploy/superset -- \
+  superset fab create-admin \
+    --username admin \
+    --firstname Platform \
+    --lastname Admin \
+    --email "$SUPERSET_ADMIN_EMAIL" \
+    --password "$SUPERSET_ADMIN_PASSWORD"
+```
+
+Add the Trino datasource:
+
+```bash
+kubectl exec -n superset deploy/superset -- \
+  superset set-database-uri \
+    -d trino_iceberg_tpcds \
+    -u trino://superset@trino.trino.svc.cluster.local:8080/iceberg/tpcds_sf1
+```
+
+Validate the same Trino connection from inside the Superset pod:
+
+```bash
+kubectl exec -n superset deploy/superset -- python -c "
+from sqlalchemy import create_engine, text
+engine = create_engine('trino://superset@trino.trino.svc.cluster.local:8080/iceberg/tpcds_sf1')
+with engine.connect() as conn:
+    print(conn.execute(text('SELECT count(*) FROM iceberg.tpcds_sf1.customer')).fetchall())
+"
+```
+
+Expected output:
+
+```text
+[(100000,)]
+```
+
+For a quick UI check without public exposure:
+
+```bash
+kubectl port-forward svc/superset 8088:8088 -n superset
+```
+
+Open `http://127.0.0.1:8088`, sign in with the admin user, open SQL Lab, select the `trino_iceberg_tpcds` database, and run:
+
+```sql
+SELECT i_category, count(*) AS rows
+FROM item i
+JOIN store_sales ss
+  ON ss.ss_item_sk = i.i_item_sk
+GROUP BY i_category
+ORDER BY rows DESC
+LIMIT 5;
+```
+
+Those examples are intentionally small, but they prove the full path: Trino is running on AKS, Polaris is serving an Iceberg REST catalog, TPCDS has been persisted as Iceberg/Parquet data in ADLS Gen2, and Superset can query the data through Trino.
+
+## Why this starting pattern works
+
+TODO: Explain why the baseline-plus-explicit-Helm pattern is better than a hidden all-in-one installer.
+
+## Production considerations
+
+TODO: Expand guidance for sizing, autoscaling, private access, observability, Polaris hardening, PostgreSQL backup, Superset cache strategy, and cost control.
+
+## What comes next
+
+TODO: Point readers to the repo docs for deeper deployment options, operations guidance, and cleanup.

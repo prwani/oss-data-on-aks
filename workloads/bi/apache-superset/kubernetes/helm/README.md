@@ -3,7 +3,7 @@
 This folder holds the checked-in Helm values for the starter Superset deployment.
 
 - chart: `superset/superset`
-- chart version: `0.15.4`
+- chart version: `0.15.5`
 - app version: `5.0.0`
 - release name assumed by the docs: `superset`
 
@@ -33,7 +33,7 @@ helm repo add superset https://apache.github.io/superset
 helm repo update
 
 helm upgrade --install superset superset/superset \
-  --version 0.15.4 \
+  --version 0.15.5 \
   --namespace superset \
   --values workloads/bi/apache-superset/kubernetes/helm/superset-values.yaml
 
@@ -51,3 +51,14 @@ kubectl wait --for=condition=available deployment/superset -n superset --timeout
 - PostgreSQL and Redis use durable `managed-csi-premium` PVCs; apply `workloads/bi/apache-superset/kubernetes/manifests/managed-csi-premium-storageclass.yaml` before installation or change the storage class names if your AKS cluster uses a different Premium CSI class
 - Celery beat, Flower, and websocket pods stay disabled in the starter until alerts, reports, or live queue monitoring are part of the design
 - the created `superset` service account gives you a clean anchor point for workload identity later if you add Azure Storage-backed exports or logs
+- for production-scale cache and Celery broker requirements, replace the chart-managed Redis starter with Azure Managed Redis or another externally operated Redis-compatible service
+
+## Trino/Iceberg connection
+
+After the Trino blueprint materializes TPCDS into Iceberg on ADLS Gen2, add a Superset database connection that targets the persisted data:
+
+```text
+trino://<user>@<trino-host>:8080/iceberg/tpcds_sf1
+```
+
+Use `iceberg.tpcds_sf1.*` tables for datasets and dashboards. Avoid building BI assets directly on `tpcds.*` unless you intentionally want generated, non-persisted benchmark rows.

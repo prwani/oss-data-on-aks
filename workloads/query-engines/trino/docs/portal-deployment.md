@@ -8,10 +8,12 @@ You should end with:
 
 - an AKS cluster aligned to the shared AVM baseline
 - one dedicated `trino` user pool with 3 nodes
+- one `catalog` user pool for the Iceberg REST catalog service
 - a `trino` namespace
 - a Helm release named `trino` using chart `1.42.1`
 - internal-only access to the coordinator service
-- a working `tpch` catalog for smoke testing
+- a working `tpcds` catalog for generated benchmark rows
+- an Iceberg REST path for persisted ADLS Gen2 tables
 
 ## Step 1: Review the blueprint assets
 
@@ -28,6 +30,7 @@ Suggested naming:
 
 - resource group: `rg-trino-aks-dev`
 - cluster: `aks-trino-dev`
+- region: `swedencentral`
 
 Keep those names aligned with the Terraform and Bicep wrappers so the same environment can later move to automation without a rename.
 
@@ -39,14 +42,15 @@ Mirror the AVM-oriented design choices when you use the portal:
 2. enable managed identity
 3. enable Azure Monitor integration if your environment expects it
 4. keep the cluster API private if that matches your platform standard
-5. create a system pool and one user pool named `trino`
+5. create a system pool, one user pool named `trino`, and one user pool named `catalog`
 
 ### Suggested pool intent
 
 | Pool | Purpose | Notes |
 | --- | --- | --- |
 | systempool | AKS add-ons | keep Trino pods off this pool |
-| trino | coordinator and workers | start with 3 nodes and taint it with `dedicated=trino:NoSchedule` |
+| trino | coordinator and workers | start with 3 SSD/NVMe-capable nodes and taint it with `dedicated=trino:NoSchedule` |
+| catalog | Iceberg REST catalog | start with 2 nodes and taint it with `dedicated=catalog:NoSchedule` |
 
 If you taint the pool, keep the taint aligned with the tolerations in `trino-values.yaml`.
 
@@ -64,7 +68,7 @@ az aks get-credentials --resource-group rg-trino-aks-dev --name aks-trino-dev
 kubectl apply -f workloads/query-engines/trino/kubernetes/manifests/namespace.yaml
 ```
 
-The starter Trino footprint does not require any bootstrap secret because the checked-in catalog is `tpch` only.
+The starter Trino footprint does not require source data because it validates the generated `tpcds` source catalog. The upstream chart may also render its default `tpch` catalog.
 
 ## Step 6: Install Trino
 
@@ -84,7 +88,7 @@ curl http://127.0.0.1:8080/v1/info
 
 kubectl exec deploy/trino-coordinator -n trino -- trino --execute "SHOW CATALOGS"
 
-kubectl exec deploy/trino-coordinator -n trino -- trino --execute "SELECT count(*) AS nations FROM tpch.tiny.nation"
+kubectl exec deploy/trino-coordinator -n trino -- trino --execute "SELECT count(*) AS customers FROM tpcds.tiny.customer"
 ```
 
 Check for:
@@ -92,11 +96,11 @@ Check for:
 - one healthy coordinator pod
 - three healthy worker pods
 - the coordinator service staying private inside the cluster
-- `tpch` appearing in `SHOW CATALOGS`
+- `tpcds` appearing in `SHOW CATALOGS`
 
 ## Portal-specific review points
 
 - confirm the `trino` pool has the expected VM size and taint
 - confirm the coordinator service is not exposed publicly
 - confirm the node count leaves headroom for three workers plus the coordinator
-- confirm any future catalog plan for Azure Storage uses workload identity instead of shared keys
+- confirm the Iceberg catalog plan for Azure Storage uses workload identity instead of shared keys

@@ -13,7 +13,7 @@ Use this path when you want the cluster foundation and workload deployment captu
 ## Environment variables
 
 ```bash
-export LOCATION=eastus
+export LOCATION=swedencentral
 export RESOURCE_GROUP=rg-apache-superset-aks-dev
 export CLUSTER_NAME=aks-apache-superset-dev
 export SUPERSET_NAMESPACE=superset
@@ -22,7 +22,14 @@ export SUPERSET_POSTGRES_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
 export SUPERSET_SECRET_KEY="$(openssl rand -base64 42 | tr -d '\n')"
 export SUPERSET_ADMIN_EMAIL="${SUPERSET_ADMIN_EMAIL:?Set SUPERSET_ADMIN_EMAIL to a real email address before continuing}"
 export SUPERSET_ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
-export SUPERSET_HELM_VERSION=0.15.4
+export SUPERSET_HELM_VERSION=0.15.5
+```
+
+If this Superset deployment connects to the Trino/Iceberg blueprint, set:
+
+```bash
+export TRINO_HOST="<trino-private-host-or-forwarded-host>"
+export TRINO_PORT=8080
 ```
 
 ## Option A: Bicep wrapper
@@ -137,6 +144,8 @@ kubectl port-forward svc/superset 8088:8088 -n "$SUPERSET_NAMESPACE"
 - the chart's root-level `nodeSelector` and `tolerations` place the web deployment, worker deployment, and `superset-init-db` job on the dedicated `superset` node pool; PostgreSQL and Redis repeat the same placement explicitly in their subchart values
 - apply `workloads/bi/apache-superset/kubernetes/manifests/managed-csi-premium-storageclass.yaml` before the Helm release unless your cluster already exposes an equivalent Premium CSI class and you rename the values accordingly
 - the `superset-init-db` job is part of every install or upgrade and must complete before the rollout is healthy
-- chart-managed PostgreSQL and Redis are acceptable starter scope boundaries, but move them out when you need independent patching, stronger backup posture, or cross-zone database design
+- chart-managed PostgreSQL and Redis are acceptable starter scope boundaries, but move them out when you need independent patching, stronger backup posture, cross-zone database design, or scalable cache/queue behavior
+- for production-scale cache and Celery broker usage, use Azure Managed Redis rather than depending on the starter in-cluster Redis service
+- connect Superset to Trino's `iceberg.tpcds_sf1` schema after TPCDS has been materialized into ADLS Gen2
 - Celery beat and Flower stay disabled until you explicitly add scheduled reports or queue monitoring
 - if you later add Azure Storage-backed exports, logs, or artifacts, bind a managed identity to the `superset` service account instead of storing account keys or shared secrets

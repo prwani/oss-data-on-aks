@@ -1,6 +1,6 @@
 # Apache Superset on AKS
 
-This blueprint turns the repository's Superset stub into a concrete starter for **Apache Superset 5.0.0** on AKS using the official **Superset Helm chart 0.15.4**.
+This blueprint turns the repository's Superset stub into a concrete starter for **Apache Superset 5.0.0** on AKS using the official **Superset Helm chart 0.15.5**.
 
 ## What this blueprint is optimizing for
 
@@ -8,6 +8,7 @@ This blueprint turns the repository's Superset stub into a concrete starter for 
 - **Dedicated `superset` user pool** with three nodes for the web tier, Celery workers, and starter dependencies
 - **Internal-only Superset UI** by default through an Azure internal load balancer
 - **Concrete starter dependencies** with chart-managed PostgreSQL metadata storage and Redis for cache and Celery
+- **Trino/Iceberg connection guidance** for querying persisted TPCDS tables through Trino
 - **Secret-driven bootstrap** using external Kubernetes secrets instead of committed admin passwords or fake keys
 - **TechCommunity-ready blog content** aligned to the implementation assets in [`blogs/apache-superset`](../../../blogs/apache-superset)
 
@@ -37,6 +38,7 @@ A normal stateless app can often be summarized as “deployment + service + data
 | Cache and queue | Chart-managed Redis for the starter | Makes Celery and cache behavior concrete from day one |
 | Persistent storage | `managed-csi-premium` for PostgreSQL and Redis | Gives the starter stateful tiers durable AKS-backed storage |
 | UI exposure | Internal Azure load balancer | Keeps the operator surface private by default |
+| Trino data source | Connect to Trino's `iceberg` catalog | Queries persisted Iceberg tables in ADLS Gen2 rather than generated `tpcds` rows |
 
 ## Blueprint contents
 
@@ -71,4 +73,4 @@ The Superset chart applies the root-level `nodeSelector` and `tolerations` to th
 
 ## Scope boundary
 
-This starter deliberately uses the chart-managed PostgreSQL database and Redis service so the blueprint stays runnable on a fresh AKS cluster. It does **not** pre-wire SSO, SMTP, scheduled reports, an external metadata database, or Azure Storage-based exports. Celery beat and Flower stay disabled until you intentionally add scheduled reports or queue monitoring. When you extend the design, keep Azure Well-Architected guidance in mind and use workload identity or another managed identity-based flow for any Azure Storage integration instead of shared keys.
+This starter deliberately uses the chart-managed PostgreSQL database and Redis service so the blueprint stays runnable on a fresh AKS cluster. It does **not** pre-wire SSO, SMTP, scheduled reports, an external metadata database, or Azure Storage-based exports. For production-scale Superset caching and Celery broker usage, prefer **Azure Managed Redis** or another externally operated Redis-compatible service rather than relying on the starter in-cluster dependency. Celery beat and Flower stay disabled until you intentionally add scheduled reports or queue monitoring. When you extend the design, keep Azure Well-Architected guidance in mind and use workload identity or another managed identity-based flow for any Azure Storage integration instead of shared keys.

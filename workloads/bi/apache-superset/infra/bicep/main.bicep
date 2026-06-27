@@ -13,7 +13,7 @@ param dnsPrefix string = '${clusterName}-dns'
 param systemNodePoolName string = 'systempool'
 
 @description('VM size for the AKS system node pool.')
-param systemNodePoolVmSize string = 'Standard_D2s_v5'
+param systemNodePoolVmSize string = 'Standard_D2s_v6'
 
 @description('Node count for the AKS system node pool.')
 param systemNodePoolCount int = 1
@@ -22,7 +22,7 @@ param systemNodePoolCount int = 1
 param supersetNodePoolName string = 'superset'
 
 @description('VM size for the dedicated Superset user node pool.')
-param supersetNodePoolVmSize string = 'Standard_D4s_v5'
+param supersetNodePoolVmSize string = 'Standard_D4s_v6'
 
 @description('Node count for the dedicated Superset user node pool.')
 param supersetNodePoolCount int = 3

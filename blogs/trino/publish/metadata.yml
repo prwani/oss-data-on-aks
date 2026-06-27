@@ -9,7 +9,7 @@ tags:
   - "Trino"
   - "Kubernetes"
   - "Linux and Open Source"
-summary: "A starter Azure-first blueprint for running Trino on AKS with a dedicated query node pool, private-by-default service exposure, and a runnable tpch catalog."
+summary: "A starter Azure-first blueprint for running Trino on AKS with a dedicated query node pool, private-by-default service exposure, generated TPCDS data, and Iceberg persistence on ADLS Gen2."
 canonical_repo_path: "blogs/trino"
 source_files:
   - "blogs/trino/source/trino-on-aks.md"

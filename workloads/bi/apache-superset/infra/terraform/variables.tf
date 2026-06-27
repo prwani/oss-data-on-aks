@@ -7,7 +7,7 @@ variable "environment_name" {
 variable "location" {
   description = "Azure region for the deployment."
   type        = string
-  default     = "eastus"
+  default     = "swedencentral"
 }
 
 variable "resource_group_name" {
@@ -31,7 +31,7 @@ variable "system_node_pool_name" {
 variable "system_node_pool_vm_size" {
   description = "VM size for the AKS system node pool."
   type        = string
-  default     = "Standard_D2s_v5"
+  default     = "Standard_D2s_v6"
 }
 
 variable "system_node_pool_count" {
@@ -49,7 +49,7 @@ variable "superset_node_pool_name" {
 variable "superset_node_pool_vm_size" {
   description = "VM size for the dedicated Superset node pool."
   type        = string
-  default     = "Standard_D4s_v5"
+  default     = "Standard_D4s_v6"
 }
 
 variable "superset_node_pool_count" {

@@ -37,7 +37,7 @@ Prefer these steps over ad hoc resizing:
 - pin the chart and Trino versions you validated
 - keep worker graceful shutdown enabled so AKS maintenance events are less disruptive to active queries
 - test chart upgrades on a non-production cluster with the same catalog mix
-- rerun the `tpch` validation queries and any environment-specific queries after upgrades
+- rerun the `tpcds` and persisted Iceberg validation queries after upgrades
 
 ## Security and platform guidance
 

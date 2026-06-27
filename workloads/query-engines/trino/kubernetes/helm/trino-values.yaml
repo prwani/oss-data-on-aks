@@ -2,10 +2,22 @@ image:
   repository: trinodb/trino
   tag: "479"
 
+serviceAccount:
+  create: true
+  name: trino
+  annotations: {}
+
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
 server:
   workers: 3
   node:
-    environment: aks-trino-dev
+    environment: akstrinodev
   log:
     trino:
       level: INFO
@@ -27,9 +39,9 @@ additionalConfigProperties:
   - spill-enabled=true
 
 catalogs:
-  tpch: |
-    connector.name=tpch
-    tpch.splits-per-node=16
+  tpcds: |
+    connector.name=tpcds
+    tpcds.splits-per-node=16
 
 service:
   annotations: {}
@@ -37,6 +49,7 @@ service:
   port: 8080
 
 coordinator:
+  labels: {}
   jvm:
     maxHeapSize: "4G"
     gcMethod:
@@ -77,6 +90,7 @@ coordinator:
   terminationGracePeriodSeconds: 60
 
 worker:
+  labels: {}
   jvm:
     maxHeapSize: "8G"
     gcMethod:

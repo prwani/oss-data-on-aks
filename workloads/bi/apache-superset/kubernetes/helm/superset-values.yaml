@@ -9,9 +9,16 @@ secretEnv:
   create: false
 envFromSecret: superset-env
 
+bootstrapScript: |
+  #!/bin/bash
+  pip install --no-cache-dir --target /app/.venv/lib/python3.10/site-packages psycopg2-binary "trino[sqlalchemy]"
+  if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
+
 service:
   type: LoadBalancer
   port: 8088
+  nodePort:
+    http: null
   annotations:
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 

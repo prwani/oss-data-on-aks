@@ -1,11 +1,18 @@
 environment_name         = "dev"
-location                 = "eastus"
+location                 = "swedencentral"
 resource_group_name      = "rg-trino-aks-dev"
 cluster_name             = "aks-trino-dev"
-system_pool_vm_size      = "Standard_D2s_v5"
+lakehouse_file_system_name = "lakehouse"
+polaris_postgresql_database_name = "polaris"
+polaris_postgresql_admin_login = "polarisadmin"
+polaris_postgresql_sku_name = "B_Standard_B1ms"
+polaris_postgresql_storage_mb = 32768
+system_pool_vm_size      = "Standard_D2s_v6"
 system_pool_node_count   = 1
-trino_node_pool_vm_size  = "Standard_D8ds_v5"
+trino_node_pool_vm_size  = "Standard_L8s_v3"
 trino_node_pool_node_count = 3
+catalog_node_pool_vm_size = "Standard_D4s_v6"
+catalog_node_pool_node_count = 2
 
 tags = {
   owner = "data-platform-team"
